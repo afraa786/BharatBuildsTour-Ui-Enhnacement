@@ -1,0 +1,62 @@
+name: stockaware
+
+x-server-environment: &server-environment
+  ENVIRONMENT: ${ENVIRONMENT:-local}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+  POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+  POSTGRES_HOST: db
+  POSTGRES_PORT: 5432
+  CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:3000"]}'
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  migrate:
+    build:
+      context: ./server
+    environment: *server-environment
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  server:
+    build:
+      context: ./server
+    environment: *server-environment
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
