@@ -1,0 +1,160 @@
+{
+  "_comment": "Quote lifecycle fixtures including v1 vs v2",
+  "quote_v1_stale": {
+    "id": "q1111111-0000-4000-a000-000000000001",
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "buyer_id": "c0000000-0000-4000-a000-000000000000",
+    "quote_version": 1,
+    "is_current": false,
+    "status": "CANCELLED",
+    "subtotal_paise": 35625,
+    "tax_paise": 6413,
+    "total_paise": 42038,
+    "currency": "INR",
+    "approval_required": false,
+    "approval_satisfied": false,
+    "expires_at": "2026-09-17T23:59:59Z",
+    "items": [
+      {
+        "line_no": 1,
+        "product_id": "prod-0000000-0001",
+        "sku": "SKU-001",
+        "name": "Copper Wire 2.5mm",
+        "quantity": "2.500",
+        "unit": "meter",
+        "unit_price_paise": 15000,
+        "cost_unit_paise": 10000,
+        "gross_paise": 37500,
+        "discount_paise": 1875,
+        "taxable_paise": 35625,
+        "gst_rate_bps": 1800,
+        "tax_paise": 6413,
+        "line_total_paise": 42038
+      }
+    ],
+    "buyer_snapshot": {
+      "whatsapp_e164": "+919876543210",
+      "name": "Test Buyer"
+    },
+    "policy_snapshot": {
+      "rule_id": "rule-1",
+      "rule_version": 1,
+      "max_discount_bps": 1000,
+      "min_margin_bps": 2000,
+      "approval_reasons": []
+    }
+  },
+  "quote_v2_draft": {
+    "id": "q2222222-0000-4000-a000-000000000002",
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "buyer_id": "c0000000-0000-4000-a000-000000000000",
+    "quote_version": 2,
+    "is_current": true,
+    "status": "DRAFT",
+    "subtotal_paise": 8500,
+    "tax_paise": 1530,
+    "total_paise": 10030,
+    "currency": "INR",
+    "approval_required": true,
+    "approval_satisfied": false,
+    "expires_at": "2026-09-18T23:59:59Z",
+    "items": [
+      {
+        "line_no": 1,
+        "product_id": "prod-0000000-0002",
+        "sku": "SKU-002",
+        "name": "Copper Wire 4mm",
+        "quantity": "1.000",
+        "unit": "meter",
+        "unit_price_paise": 10000,
+        "cost_unit_paise": 5000,
+        "gross_paise": 10000,
+        "discount_paise": 1500,
+        "taxable_paise": 8500,
+        "gst_rate_bps": 1800,
+        "tax_paise": 1530,
+        "line_total_paise": 10030
+      }
+    ],
+    "buyer_snapshot": {
+      "whatsapp_e164": "+919876543210",
+      "name": "Test Buyer"
+    },
+    "policy_snapshot": {
+      "rule_id": "rule-1",
+      "rule_version": 1,
+      "max_discount_bps": 1000,
+      "min_margin_bps": 2000,
+      "approval_reasons": ["DISCOUNT_EXCEEDS_CAP"]
+    }
+  },
+  "quote_v2_approved": {
+    "id": "q2222222-0000-4000-a000-000000000002",
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "buyer_id": "c0000000-0000-4000-a000-000000000000",
+    "quote_version": 2,
+    "is_current": true,
+    "status": "GENERATED",
+    "subtotal_paise": 8500,
+    "tax_paise": 1530,
+    "total_paise": 10030,
+    "currency": "INR",
+    "approval_required": true,
+    "approval_satisfied": true,
+    "approval_id": "APP-2026-X7Y8Z9",
+    "approval_evidence": {
+      "quote_version": 2,
+      "approved_by": "Owner"
+    },
+    "expires_at": "2026-09-18T23:59:59Z",
+    "items": []
+  },
+  "quote_v2_accepted": {
+    "id": "q2222222-0000-4000-a000-000000000002",
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "buyer_id": "c0000000-0000-4000-a000-000000000000",
+    "quote_version": 2,
+    "is_current": true,
+    "status": "ACCEPTED",
+    "subtotal_paise": 8500,
+    "tax_paise": 1530,
+    "total_paise": 10030,
+    "currency": "INR",
+    "approval_required": true,
+    "approval_satisfied": true,
+    "approval_id": "APP-2026-X7Y8Z9",
+    "approval_evidence": {
+      "quote_version": 2,
+      "approved_by": "Owner"
+    },
+    "acceptance_id": "ACC-2026-A1B2C3",
+    "acceptance_evidence": {
+      "quote_version": 2,
+      "accepted_by": "Buyer",
+      "timestamp": "2026-09-18T00:00:00Z"
+    },
+    "expires_at": "2026-09-18T23:59:59Z",
+    "items": []
+  },
+  "quote_expired": {
+    "id": "q3333333-0000-4000-a000-000000000003",
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1043-BETA",
+    "buyer_id": "c0000000-0000-4000-a000-000000000000",
+    "quote_version": 1,
+    "is_current": true,
+    "status": "EXPIRED",
+    "subtotal_paise": 1000,
+    "tax_paise": 180,
+    "total_paise": 1180,
+    "currency": "INR",
+    "approval_required": false,
+    "approval_satisfied": false,
+    "expires_at": "2026-09-10T00:00:00Z",
+    "items": []
+  }
+}

@@ -1,3 +1,5 @@
+from importlib import import_module
+
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -5,4 +7,15 @@ class Base(DeclarativeBase):
     pass
 
 
-# Import model modules here as they are added so Alembic can discover metadata.
+# Explicit registry: Alembic imports this module, so every commercial model is loaded here.
+MODEL_MODULES = (
+    "app.modules.identity.models",
+    "app.modules.catalog.models",
+    "app.modules.inventory.models",
+    "app.modules.pricing.models",
+    "app.modules.payments.models",
+    "app.modules.invoices.models",
+)
+
+for module in MODEL_MODULES:
+    import_module(module)

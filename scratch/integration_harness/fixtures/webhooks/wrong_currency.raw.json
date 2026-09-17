@@ -1,0 +1,32 @@
+{
+  "entity": "event",
+  "account_id": "acc_TestAccount123",
+  "event": "payment_link.paid",
+  "contains": [
+    "payment",
+    "payment_link"
+  ],
+  "payload": {
+    "payment": {
+      "entity": {
+        "id": "pay_XYZ1234567890",
+        "entity": "payment",
+        "amount": 10030,
+        "currency": "USD",
+        "status": "captured",
+        "order_id": "order_XYZ9876543210"
+      }
+    },
+    "payment_link": {
+      "entity": {
+        "id": "plink_Qa2rZ3t4y5u6i7",
+        "entity": "payment_link",
+        "amount": 10030,
+        "amount_paid": 10030,
+        "currency": "USD",
+        "status": "paid"
+      }
+    }
+  },
+  "created_at": 1695000000
+}

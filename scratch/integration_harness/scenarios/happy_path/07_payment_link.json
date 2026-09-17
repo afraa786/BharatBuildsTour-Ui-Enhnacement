@@ -1,0 +1,15 @@
+{
+  "request": {
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "quote_id": "q2222222-0000-4000-a000-000000000002",
+    "quote_version": 2,
+    "amount_paise": 10030
+  },
+  "response": {
+    "payment_id": "p0000000-0000-4000-a000-000000000000",
+    "status": "CREATED",
+    "provider_link_id": "plink_Qa2rZ3t4y5u6i7",
+    "payment_url": "https://rzp.io/i/testlink123"
+  }
+}

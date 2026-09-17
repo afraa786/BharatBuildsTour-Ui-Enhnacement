@@ -1,0 +1,180 @@
+{
+  "_comment": "Catalog match API fixtures (POST /catalog/match)",
+  "MATCHED_BY_SKU": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "SKU-001",
+      "requested_unit": "meter"
+    },
+    "response": {
+      "status": "MATCHED",
+      "requested_text": "SKU-001",
+      "selected_product_id": "prod-0000000-0001",
+      "selected_sku": "SKU-001",
+      "reason": "Exact SKU match.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-0001",
+          "sku": "SKU-001",
+          "name": "Copper Wire 2.5mm",
+          "match_type": "sku"
+        }
+      ]
+    }
+  },
+  "MATCHED_BY_NAME": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": " Copper Wire 2.5mm ",
+      "requested_unit": "meter"
+    },
+    "response": {
+      "status": "MATCHED",
+      "requested_text": " Copper Wire 2.5mm ",
+      "selected_product_id": "prod-0000000-0001",
+      "selected_sku": "SKU-001",
+      "reason": "Exact name match.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-0001",
+          "sku": "SKU-001",
+          "name": "Copper Wire 2.5mm",
+          "match_type": "name"
+        }
+      ]
+    }
+  },
+  "MATCHED_BY_ALIAS": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "9w bulb",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "MATCHED",
+      "requested_text": "9w bulb",
+      "selected_product_id": "prod-0000000-0003",
+      "selected_sku": "SKU-003",
+      "reason": "Exact alias match.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-0003",
+          "sku": "SKU-003",
+          "name": "LED Bulb 9W",
+          "match_type": "alias"
+        }
+      ]
+    }
+  },
+  "AMBIGUOUS_ALIAS": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "ambiguous switch",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "AMBIGUOUS",
+      "requested_text": "ambiguous switch",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "Multiple products match this alias.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-0007",
+          "sku": "SKU-007",
+          "name": "Switch 1-way",
+          "match_type": "alias"
+        },
+        {
+          "product_id": "prod-0000000-0008",
+          "sku": "SKU-008",
+          "name": "Switch 2-way",
+          "match_type": "alias"
+        }
+      ]
+    }
+  },
+  "AMBIGUOUS_UNIT": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "Paint 1L",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "AMBIGUOUS",
+      "requested_text": "Paint 1L",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "Unit 'piece' does not match product sellable unit 'bucket' and no conversion exists.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-0009",
+          "sku": "SKU-009",
+          "name": "Paint 1L",
+          "match_type": "name"
+        }
+      ]
+    }
+  },
+  "NOT_FOUND": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "Nonexistent Product",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "NOT_FOUND",
+      "requested_text": "Nonexistent Product",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "No match found.",
+      "candidates": []
+    }
+  },
+  "INACTIVE_PRODUCT": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "Old Switch",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "NOT_FOUND",
+      "requested_text": "Old Switch",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "No match found.",
+      "candidates": []
+    }
+  },
+  "CROSS_BUSINESS_NOT_FOUND": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "Other Business Product",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "NOT_FOUND",
+      "requested_text": "Other Business Product",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "No match found.",
+      "candidates": []
+    }
+  }
+}

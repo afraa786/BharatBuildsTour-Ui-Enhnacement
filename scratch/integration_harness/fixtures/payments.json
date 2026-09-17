@@ -1,0 +1,146 @@
+{
+  "_comment": "Payment API fixtures (POST /payments/create-link). Mocks Razorpay responses.",
+  "VALID_ACCEPTED_QUOTE": {
+    "expected_status": 201,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q2222222-0000-4000-a000-000000000002",
+      "quote_version": 2,
+      "amount_paise": 10030
+    },
+    "response": {
+      "payment_id": "p0000000-0000-4000-a000-000000000000",
+      "status": "CREATED",
+      "provider_link_id": "plink_Qa2rZ3t4y5u6i7",
+      "payment_url": "https://rzp.io/i/testlink123"
+    },
+    "mock_razorpay_response": {
+      "id": "plink_Qa2rZ3t4y5u6i7",
+      "amount": 10030,
+      "currency": "INR",
+      "accept_partial": false,
+      "status": "created",
+      "short_url": "https://rzp.io/i/testlink123"
+    }
+  },
+  "DRAFT_QUOTE_REJECTED": {
+    "expected_status": 409,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q2222222-0000-4000-a000-000000000002",
+      "quote_version": 2,
+      "amount_paise": 10030
+    },
+    "response": {
+      "error": {
+        "code": "QUOTE_NOT_ACCEPTED",
+        "message": "Quote is not in ACCEPTED state.",
+        "request_id": "req_pay_draft"
+      }
+    }
+  },
+  "EXPIRED_QUOTE_REJECTED": {
+    "expected_status": 409,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1043-BETA",
+      "quote_id": "q3333333-0000-4000-a000-000000000003",
+      "quote_version": 1,
+      "amount_paise": 1180
+    },
+    "response": {
+      "error": {
+        "code": "QUOTE_EXPIRED",
+        "message": "Quote has expired.",
+        "request_id": "req_pay_exp"
+      }
+    }
+  },
+  "STALE_VERSION_REJECTED": {
+    "expected_status": 409,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q1111111-0000-4000-a000-000000000001",
+      "quote_version": 1,
+      "amount_paise": 42038
+    },
+    "response": {
+      "error": {
+        "code": "QUOTE_VERSION_MISMATCH",
+        "message": "A newer quote version exists.",
+        "request_id": "req_pay_stale"
+      }
+    }
+  },
+  "APPROVAL_REQUIRED_REJECTED": {
+    "expected_status": 409,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q2222222-0000-4000-a000-000000000002",
+      "quote_version": 2,
+      "amount_paise": 10030
+    },
+    "response": {
+      "error": {
+        "code": "APPROVAL_REQUIRED",
+        "message": "Required approval has not been satisfied.",
+        "request_id": "req_pay_appr"
+      }
+    }
+  },
+  "INSUFFICIENT_STOCK_REJECTED": {
+    "expected_status": 409,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q2222222-0000-4000-a000-000000000002",
+      "quote_version": 2,
+      "amount_paise": 10030
+    },
+    "response": {
+      "error": {
+        "code": "INSUFFICIENT_STOCK",
+        "message": "Stock is no longer available to fulfill this quote.",
+        "request_id": "req_pay_stock"
+      }
+    }
+  },
+  "DUPLICATE_IDEMPOTENCY_KEY": {
+    "expected_status": 201,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q2222222-0000-4000-a000-000000000002",
+      "quote_version": 2,
+      "amount_paise": 10030
+    },
+    "response": {
+      "payment_id": "p0000000-0000-4000-a000-000000000000",
+      "status": "CREATED",
+      "provider_link_id": "plink_Qa2rZ3t4y5u6i7",
+      "payment_url": "https://rzp.io/i/testlink123"
+    },
+    "mock_razorpay_response": null
+  },
+  "IDEMPOTENCY_CONFLICT": {
+    "expected_status": 409,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q2222222-0000-4000-a000-000000000002",
+      "quote_version": 2,
+      "amount_paise": 50000
+    },
+    "response": {
+      "error": {
+        "code": "IDEMPOTENCY_CONFLICT",
+        "message": "A request with this idempotency key was already processed with a different payload.",
+        "request_id": "req_pay_idem"
+      }
+    }
+  }
+}

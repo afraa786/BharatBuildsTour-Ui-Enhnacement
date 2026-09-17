@@ -1,0 +1,20 @@
+{
+  "request": {
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "buyer_id": "c0000000-0000-4000-a000-000000000000",
+    "items": [
+      {
+        "product_id": "prod-0000000-0002",
+        "quantity": "1.000"
+      }
+    ]
+  },
+  "response": {
+    "quote_id": "q2222222-0000-4000-a000-000000000002",
+    "quote_version": 2,
+    "status": "DRAFT",
+    "approval_required": true,
+    "total_paise": 10030
+  }
+}

@@ -1,4 +1,5 @@
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
+from contextlib import contextmanager
 from functools import lru_cache
 
 from sqlalchemy import Engine, create_engine
@@ -29,6 +30,13 @@ def get_sessionmaker() -> sessionmaker[Session]:
     return sessionmaker(bind=get_engine(), autoflush=False, expire_on_commit=False)
 
 
+@contextmanager
+def transaction_session() -> Iterator[Session]:
+    """Commit on success, roll back on failure, and always close the session."""
+    with get_sessionmaker().begin() as session:
+        yield session
+
+
 def get_db() -> Generator[Session, None, None]:
-    with get_sessionmaker()() as session:
+    with transaction_session() as session:
         yield session

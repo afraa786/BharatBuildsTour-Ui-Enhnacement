@@ -1,0 +1,17 @@
+{
+  "run_id": "RFQ-1042-ALPHA",
+  "business_id": "b0000000-0000-4000-a000-000000000000",
+  "buyer": {
+    "whatsapp_e164": "+919876543210",
+    "name": "Test Buyer"
+  },
+  "intent": {
+    "requested_items": [
+      {
+        "requested_text": "Copper Wire 4mm",
+        "requested_qty": "1.000",
+        "requested_unit": "meter"
+      }
+    ]
+  }
+}

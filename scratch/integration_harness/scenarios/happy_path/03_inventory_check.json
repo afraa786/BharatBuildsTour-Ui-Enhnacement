@@ -1,0 +1,15 @@
+{
+  "request": {
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "product_id": "prod-0000000-0002",
+    "requested_qty": "1.000"
+  },
+  "response": {
+    "status": "AVAILABLE",
+    "product_id": "prod-0000000-0002",
+    "requested_qty": "1.000",
+    "stock_unit": "meter",
+    "available_qty": "50.000"
+  }
+}

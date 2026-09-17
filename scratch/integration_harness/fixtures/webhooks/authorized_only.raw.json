@@ -1,0 +1,21 @@
+{
+  "entity": "event",
+  "account_id": "acc_TestAccount123",
+  "event": "payment.authorized",
+  "contains": [
+    "payment"
+  ],
+  "payload": {
+    "payment": {
+      "entity": {
+        "id": "pay_XYZ1234567890",
+        "entity": "payment",
+        "amount": 10030,
+        "currency": "INR",
+        "status": "authorized",
+        "order_id": "order_XYZ9876543210"
+      }
+    }
+  },
+  "created_at": 1695000000
+}

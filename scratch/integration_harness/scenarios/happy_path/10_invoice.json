@@ -1,0 +1,11 @@
+{
+  "request": {
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "payment_id": "p0000000-0000-4000-a000-000000000000"
+  },
+  "response": {
+    "invoice_id": "i0000000-0000-4000-a000-000000000000",
+    "invoice_number": "INV-2026-000001",
+    "status": "PENDING_ARTIFACT"
+  }
+}

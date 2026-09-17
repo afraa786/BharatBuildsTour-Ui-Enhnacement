@@ -1,0 +1,15 @@
+{
+  "request": {
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "quote_id": "q2222222-0000-4000-a000-000000000002",
+    "quote_version": 2,
+    "acceptance_id": "ACC-2026-A1B2C3",
+    "accepted_by": "Buyer"
+  },
+  "response": {
+    "quote_id": "q2222222-0000-4000-a000-000000000002",
+    "quote_version": 2,
+    "status": "ACCEPTED"
+  }
+}

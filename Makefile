@@ -1,4 +1,4 @@
-.PHONY: install hooks lint format test up down logs migrate db-shell
+.PHONY: install hooks lint format test test-pg up down logs migrate seed db-shell
 
 install:
 	python3 -m venv server/.venv
@@ -18,6 +18,9 @@ format:
 test:
 	server/.venv/bin/pytest server/tests
 
+test-pg:
+	cd server && STOCKAWARE_RUN_PG_TESTS=1 .venv/bin/pytest tests
+
 up:
 	docker compose up --build -d
 
@@ -28,7 +31,10 @@ logs:
 	docker compose logs -f server
 
 migrate:
-	docker compose run --rm migrate
+	docker compose run --build --rm migrate
+
+seed:
+	cd server && .venv/bin/python -m app.seed
 
 db-shell:
 	docker compose exec db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'

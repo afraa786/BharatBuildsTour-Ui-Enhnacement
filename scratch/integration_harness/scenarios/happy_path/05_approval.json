@@ -1,0 +1,16 @@
+{
+  "request": {
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "quote_id": "q2222222-0000-4000-a000-000000000002",
+    "quote_version": 2,
+    "approval_id": "APP-2026-X7Y8Z9",
+    "approved_by": "Owner"
+  },
+  "response": {
+    "quote_id": "q2222222-0000-4000-a000-000000000002",
+    "quote_version": 2,
+    "status": "GENERATED",
+    "approval_satisfied": true
+  }
+}

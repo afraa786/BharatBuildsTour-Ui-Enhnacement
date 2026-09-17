@@ -1,0 +1,185 @@
+[
+  {
+    "_description": "No discount, integer quantity",
+    "inputs": {
+      "unit_price_paise": 10000,
+      "cost_unit_paise": 5000,
+      "quantity": "1.000",
+      "discount_bps": 0,
+      "gst_rate_bps": 1800,
+      "max_discount_bps": 1000,
+      "min_margin_bps": 2000
+    },
+    "expected": {
+      "gross_paise": 10000,
+      "discount_paise": 0,
+      "taxable_paise": 10000,
+      "tax_paise": 1800,
+      "line_total_paise": 11800,
+      "approval_required": false,
+      "approval_reasons": []
+    }
+  },
+  {
+    "_description": "Discount below cap",
+    "inputs": {
+      "unit_price_paise": 10000,
+      "cost_unit_paise": 5000,
+      "quantity": "1.000",
+      "discount_bps": 500,
+      "gst_rate_bps": 1800,
+      "max_discount_bps": 1000,
+      "min_margin_bps": 2000
+    },
+    "expected": {
+      "gross_paise": 10000,
+      "discount_paise": 500,
+      "taxable_paise": 9500,
+      "tax_paise": 1710,
+      "line_total_paise": 11210,
+      "approval_required": false,
+      "approval_reasons": []
+    }
+  },
+  {
+    "_description": "Discount exactly at cap",
+    "inputs": {
+      "unit_price_paise": 10000,
+      "cost_unit_paise": 5000,
+      "quantity": "1.000",
+      "discount_bps": 1000,
+      "gst_rate_bps": 1800,
+      "max_discount_bps": 1000,
+      "min_margin_bps": 2000
+    },
+    "expected": {
+      "gross_paise": 10000,
+      "discount_paise": 1000,
+      "taxable_paise": 9000,
+      "tax_paise": 1620,
+      "line_total_paise": 10620,
+      "approval_required": false,
+      "approval_reasons": []
+    }
+  },
+  {
+    "_description": "Discount above cap",
+    "inputs": {
+      "unit_price_paise": 10000,
+      "cost_unit_paise": 5000,
+      "quantity": "1.000",
+      "discount_bps": 1500,
+      "gst_rate_bps": 1800,
+      "max_discount_bps": 1000,
+      "min_margin_bps": 2000
+    },
+    "expected": {
+      "gross_paise": 10000,
+      "discount_paise": 1500,
+      "taxable_paise": 8500,
+      "tax_paise": 1530,
+      "line_total_paise": 10030,
+      "approval_required": true,
+      "approval_reasons": ["DISCOUNT_EXCEEDS_CAP"]
+    }
+  },
+  {
+    "_description": "Margin exactly at floor",
+    "inputs": {
+      "unit_price_paise": 10000,
+      "cost_unit_paise": 8000,
+      "quantity": "1.000",
+      "discount_bps": 0,
+      "gst_rate_bps": 1800,
+      "max_discount_bps": 1000,
+      "min_margin_bps": 2000
+    },
+    "expected": {
+      "gross_paise": 10000,
+      "discount_paise": 0,
+      "taxable_paise": 10000,
+      "tax_paise": 1800,
+      "line_total_paise": 11800,
+      "approval_required": false,
+      "approval_reasons": []
+    }
+  },
+  {
+    "_description": "Margin below floor",
+    "inputs": {
+      "unit_price_paise": 10000,
+      "cost_unit_paise": 8500,
+      "quantity": "1.000",
+      "discount_bps": 0,
+      "gst_rate_bps": 1800,
+      "max_discount_bps": 1000,
+      "min_margin_bps": 2000
+    },
+    "expected": {
+      "gross_paise": 10000,
+      "discount_paise": 0,
+      "taxable_paise": 10000,
+      "tax_paise": 1800,
+      "line_total_paise": 11800,
+      "approval_required": true,
+      "approval_reasons": ["MARGIN_BELOW_FLOOR"]
+    }
+  },
+  {
+    "_description": "Fractional quantity and ROUND_HALF_UP vs ROUND_HALF_EVEN check. 6412.5 tax -> 6413.",
+    "inputs": {
+      "unit_price_paise": 15000,
+      "cost_unit_paise": 10000,
+      "quantity": "2.500",
+      "discount_bps": 500,
+      "gst_rate_bps": 1800,
+      "max_discount_bps": 1000,
+      "min_margin_bps": 2000
+    },
+    "expected": {
+      "gross_paise": 37500,
+      "discount_paise": 1875,
+      "taxable_paise": 35625,
+      "tax_paise": 6413,
+      "line_total_paise": 42038,
+      "approval_required": false,
+      "approval_reasons": []
+    }
+  },
+  {
+    "_description": "Both rules broken (Discount cap & Margin floor)",
+    "inputs": {
+      "unit_price_paise": 10000,
+      "cost_unit_paise": 8500,
+      "quantity": "1.000",
+      "discount_bps": 1500,
+      "gst_rate_bps": 1800,
+      "max_discount_bps": 1000,
+      "min_margin_bps": 2000
+    },
+    "expected": {
+      "gross_paise": 10000,
+      "discount_paise": 1500,
+      "taxable_paise": 8500,
+      "tax_paise": 1530,
+      "line_total_paise": 10030,
+      "approval_required": true,
+      "approval_reasons": ["DISCOUNT_EXCEEDS_CAP", "MARGIN_BELOW_FLOOR"]
+    }
+  },
+  {
+    "_description": "Zero revenue invalidity check",
+    "inputs": {
+      "unit_price_paise": 10000,
+      "cost_unit_paise": 5000,
+      "quantity": "1.000",
+      "discount_bps": 10000,
+      "gst_rate_bps": 1800,
+      "max_discount_bps": 10000,
+      "min_margin_bps": 0
+    },
+    "expected": {
+      "error": "INVALID_REVENUE"
+    }
+  }
+]

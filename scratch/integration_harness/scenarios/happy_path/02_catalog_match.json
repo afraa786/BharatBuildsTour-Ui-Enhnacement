@@ -1,0 +1,14 @@
+{
+  "request": {
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "requested_text": "Copper Wire 4mm",
+    "requested_unit": "meter"
+  },
+  "response": {
+    "status": "MATCHED",
+    "requested_text": "Copper Wire 4mm",
+    "selected_product_id": "prod-0000000-0002",
+    "selected_sku": "SKU-002"
+  }
+}

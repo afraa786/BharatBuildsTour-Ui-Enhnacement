@@ -1,0 +1,12 @@
+{
+  "state_mutation": {
+    "invoice_id": "i0000000-0000-4000-a000-000000000000",
+    "previous_status": "PENDING_ARTIFACT",
+    "new_status": "GENERATED"
+  },
+  "artifact": {
+    "artifact_key": "invoices/2026/INV-2026-000001.pdf",
+    "artifact_sha256": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+    "download_url": "/invoices/i0000000-0000-4000-a000-000000000000/download"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "_comment": "Rehbar evidence fixtures. Transport mechanism is DEFERRED (e.g. could be HTTP push, queue, or inline payload).",
+  "approval_evidence.json": {
+    "transport": "DEFERRED",
+    "payload": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q2222222-0000-4000-a000-000000000002",
+      "quote_version": 2,
+      "approval_id": "APP-2026-X7Y8Z9",
+      "approved_by": "Owner",
+      "timestamp": "2026-09-17T20:00:00Z"
+    }
+  },
+  "acceptance_evidence.json": {
+    "transport": "DEFERRED",
+    "payload": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q2222222-0000-4000-a000-000000000002",
+      "quote_version": 2,
+      "acceptance_id": "ACC-2026-A1B2C3",
+      "accepted_by": "Buyer",
+      "timestamp": "2026-09-17T21:00:00Z"
+    }
+  },
+  "approval_for_old_quote_version.json": {
+    "transport": "DEFERRED",
+    "payload": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q1111111-0000-4000-a000-000000000001",
+      "quote_version": 1,
+      "approval_id": "APP-OLD-VERSION",
+      "approved_by": "Owner",
+      "timestamp": "2026-09-17T19:00:00Z"
+    }
+  },
+  "acceptance_for_old_quote_version.json": {
+    "transport": "DEFERRED",
+    "payload": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q1111111-0000-4000-a000-000000000001",
+      "quote_version": 1,
+      "acceptance_id": "ACC-OLD-VERSION",
+      "accepted_by": "Buyer",
+      "timestamp": "2026-09-17T19:30:00Z"
+    }
+  }
+}

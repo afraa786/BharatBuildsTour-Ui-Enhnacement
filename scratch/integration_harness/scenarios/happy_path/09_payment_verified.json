@@ -1,0 +1,16 @@
+{
+  "state_mutation": {
+    "payment_id": "p0000000-0000-4000-a000-000000000000",
+    "previous_status": "PENDING",
+    "new_status": "PAID"
+  },
+  "outbox_event": {
+    "topic": "payment.success",
+    "payload": {
+      "payment_id": "p0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "quote_id": "q2222222-0000-4000-a000-000000000002",
+      "amount_paise": 10030
+    }
+  }
+}
