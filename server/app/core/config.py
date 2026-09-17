@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     postgres_host: str = "127.0.0.1"
     postgres_port: int = 5432
     cors_origins: list[str] = ["http://localhost:3000"]
+    internal_business_id: str = ""
+    internal_service_token: SecretStr = SecretStr("")
 
     whatsapp_biz_phone_number_id: str = ""
     whatsapp_biz_access_token: SecretStr = SecretStr("")
