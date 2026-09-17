@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
     internal_business_id: str = ""
     internal_service_token: SecretStr = SecretStr("")
+    razorpay_key_id: str = ""
+    razorpay_key_secret: SecretStr = SecretStr("")
+    razorpay_webhook_secret: SecretStr = SecretStr("")
+    razorpay_previous_webhook_secret: SecretStr = SecretStr("")
+    razorpay_account_id: str = ""
 
     whatsapp_biz_phone_number_id: str = ""
     whatsapp_biz_access_token: SecretStr = SecretStr("")
