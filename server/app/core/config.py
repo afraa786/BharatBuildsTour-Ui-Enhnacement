@@ -20,12 +20,43 @@ class Settings(BaseSettings):
     postgres_port: int = 5432
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    whatsapp_biz_phone_number_id: str = ""
+    whatsapp_biz_access_token: SecretStr = SecretStr("")
+    whatsapp_biz_verify_token: str = ""
+    whatsapp_test_phone_number_id: str = ""
+    whatsapp_test_access_token: SecretStr = SecretStr("")
+    whatsapp_test_verify_token: str = ""
+    admin_whatsapp_numbers: str = ""
+
     @model_validator(mode="after")
     def reject_placeholder_password(self) -> "Settings":
         password = self.postgres_password.get_secret_value()
         if not password or password.startswith("replace-with-"):
             raise ValueError("Set a unique POSTGRES_PASSWORD in .env before starting the API")
         return self
+
+    @property
+    def admin_wa_ids(self) -> set[str]:
+        return {n.strip() for n in self.admin_whatsapp_numbers.split(",") if n.strip()}
+
+    @property
+    def whatsapp_verify_tokens(self) -> set[str]:
+        return {t for t in (self.whatsapp_biz_verify_token, self.whatsapp_test_verify_token) if t}
+
+    @property
+    def whatsapp_number_credentials(self) -> dict[str, tuple[str, str]]:
+        credentials: dict[str, tuple[str, str]] = {}
+        if self.whatsapp_biz_phone_number_id:
+            credentials[self.whatsapp_biz_phone_number_id] = (
+                self.whatsapp_biz_phone_number_id,
+                self.whatsapp_biz_access_token.get_secret_value(),
+            )
+        if self.whatsapp_test_phone_number_id:
+            credentials[self.whatsapp_test_phone_number_id] = (
+                self.whatsapp_test_phone_number_id,
+                self.whatsapp_test_access_token.get_secret_value(),
+            )
+        return credentials
 
 
 @lru_cache

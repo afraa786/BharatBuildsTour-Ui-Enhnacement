@@ -35,7 +35,9 @@ The authoritative behavioral contract remains [contracts.md](contracts.md). See 
 
 ## 3. Database Tables
 
-Phase 1 creates 17 commercial and support tables.
+Fareed's Phase 1 creates the 17 commercial and support tables below. Rehbar's
+independently merged workflow migration additionally owns `runs`, `run_events`,
+`approvals`, and `whatsapp_messages`; those are not Fareed commercial tables.
 
 ### Identity
 
@@ -155,15 +157,15 @@ Ready as a persistence/contract foundation:
 - Payment-event deduplication foundation
 - Payment-outbox persistence foundation
 - Stable cross-system identifiers
+- Rehbar-owned WhatsApp ingress and Manager/run routes in the combined application
 
-Not ready yet:
+Fareed commercial capabilities not ready yet:
 
-- WhatsApp ingress endpoint
 - Catalog matching endpoint
 - Inventory check endpoint
 - Quote generation endpoint
-- Approval application endpoint
-- Acceptance application endpoint
+- Fareed-side exact-quote approval evidence application
+- Fareed-side buyer acceptance evidence application
 - Payment-link endpoint
 - Razorpay webhook endpoint
 - Invoice generation endpoint
@@ -188,7 +190,9 @@ The harness is integration fixture and simulation data. It is **not** production
 
 ## 9. Backend Endpoint Status
 
-The application router currently registers only the two health routes below. FastAPI's documentation/schema routes are generated framework utilities.
+The combined application currently registers health routes and Rehbar-owned
+WhatsApp/Manager routes. Fareed commercial routes remain unimplemented.
+FastAPI's documentation/schema routes are generated framework utilities.
 
 | Endpoint / Capability | Phase | Current Status | Notes |
 | --- | --- | --- | --- |
@@ -197,6 +201,14 @@ The application router currently registers only the two health routes below. Fas
 | `GET /openapi.json` | Foundation | AVAILABLE | FastAPI-generated schema for currently registered routes |
 | `GET /docs` | Foundation | AVAILABLE | FastAPI Swagger UI |
 | `GET /redoc` | Foundation | AVAILABLE | FastAPI ReDoc UI |
+| `GET /webhook/whatsapp` | Rehbar integration | AVAILABLE | Meta verification handshake; requires configured verification token |
+| `POST /webhook/whatsapp` | Rehbar integration | AVAILABLE | Rehbar-owned WhatsApp ingress |
+| `GET /runs` | Rehbar integration | AVAILABLE | Manager run listing |
+| `GET /runs/{run_id}` | Rehbar integration | AVAILABLE | Manager run snapshot |
+| `GET /runs/{run_id}/timeline` | Rehbar integration | AVAILABLE | Manager-owned run events |
+| `POST /runs/{run_id}/approve` | Rehbar integration | AVAILABLE | Rehbar-owned workflow approval action |
+| `POST /runs/{run_id}/reject` | Rehbar integration | AVAILABLE | Rehbar-owned workflow rejection action |
+| `POST /admin/command` | Rehbar integration | AVAILABLE | Rehbar-owned admin command processing |
 | `GET /products` | Phase 2 | NOT IMPLEMENTED | Contracted product-list route |
 | `POST /catalog/match` | Phase 2 | NOT IMPLEMENTED | Deterministic catalog matching |
 | `POST /inventory/check` | Phase 2 | NOT IMPLEMENTED | Read-only availability check |
@@ -210,7 +222,8 @@ The application router currently registers only the two health routes below. Fas
 | `GET /invoices/{id}` | Phase 5 | NOT IMPLEMENTED | Invoice/artifact read |
 | Invoice PDF/artifact storage | Phase 5 | NOT IMPLEMENTED | Local adapter first; storage target remains deferred |
 
-Rehbar-owned WhatsApp, admin-command, run, and timeline endpoints are also not implemented in this Fareed backend repository.
+The available Rehbar routes do not implement Fareed's catalog, inventory,
+pricing, payment, or invoice capabilities and do not change their phase status.
 
 ## 10. Phase 1 Data Safety Guarantees
 
@@ -309,8 +322,8 @@ server/.venv/bin/pytest -c scratch/integration_harness/pytest.ini scratch/integr
 
 The frozen Phase 1 checkpoint was verified with:
 
-- Default backend suite: 3 passed, 6 PostgreSQL-only tests skipped, 2 non-failing warnings.
-- PostgreSQL suite: 9 passed with a real PostgreSQL database, 2 non-failing warnings.
+- Default backend suite: 9 passed, 6 PostgreSQL-only tests skipped, 2 non-failing warnings.
+- PostgreSQL suite: 15 passed with a real PostgreSQL database, 2 non-failing warnings.
 - Actual migration upgrade, downgrade to `0001_baseline`, and re-upgrade to head.
 - Alembic model/schema drift check.
 - Actual seed CLI executed twice with stable logical row counts.

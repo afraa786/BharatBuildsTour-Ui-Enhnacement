@@ -1,0 +1,9 @@
+aws_region = "ap-south-1"
+
+postgres_password = "set-a-real-password"
+
+whatsapp_biz_phone_number_id = ""
+whatsapp_biz_access_token    = ""
+whatsapp_biz_verify_token    = ""
+
+admin_whatsapp_numbers = "918766700429"

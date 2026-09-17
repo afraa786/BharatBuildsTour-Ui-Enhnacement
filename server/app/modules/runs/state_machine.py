@@ -1,0 +1,63 @@
+from enum import StrEnum
+
+
+class RunStatus(StrEnum):
+    RECEIVED = "RECEIVED"
+    NORMALIZING = "NORMALIZING"
+    WAITING_FOR_CLARIFICATION = "WAITING_FOR_CLARIFICATION"
+    CHECKING_STOCK = "CHECKING_STOCK"
+    CHECKING_PRICE = "CHECKING_PRICE"
+    APPROVAL_PENDING = "APPROVAL_PENDING"
+    REJECTED = "REJECTED"
+    EXPIRED = "EXPIRED"
+    QUOTE_CREATED = "QUOTE_CREATED"
+    QUOTE_SENT = "QUOTE_SENT"
+    CHANGE_REQUESTED = "CHANGE_REQUESTED"
+    ACCEPTED = "ACCEPTED"
+    PAYMENT_LINK_SENT = "PAYMENT_LINK_SENT"
+    PAYMENT_PENDING = "PAYMENT_PENDING"
+    PAYMENT_FAILED = "PAYMENT_FAILED"
+    PAYMENT_EXPIRED = "PAYMENT_EXPIRED"
+    PAYMENT_CONFIRMED = "PAYMENT_CONFIRMED"
+    INVOICE_GENERATED = "INVOICE_GENERATED"
+    ORDER_CONFIRMED = "ORDER_CONFIRMED"
+
+
+TERMINAL_STATUSES = {
+    RunStatus.REJECTED,
+    RunStatus.EXPIRED,
+    RunStatus.PAYMENT_FAILED,
+    RunStatus.PAYMENT_EXPIRED,
+    RunStatus.ORDER_CONFIRMED,
+}
+
+ALLOWED_TRANSITIONS: dict[RunStatus, set[RunStatus]] = {
+    RunStatus.RECEIVED: {RunStatus.NORMALIZING},
+    RunStatus.NORMALIZING: {RunStatus.WAITING_FOR_CLARIFICATION, RunStatus.CHECKING_STOCK},
+    RunStatus.WAITING_FOR_CLARIFICATION: {RunStatus.NORMALIZING, RunStatus.CHECKING_STOCK},
+    RunStatus.CHECKING_STOCK: {RunStatus.CHECKING_PRICE, RunStatus.WAITING_FOR_CLARIFICATION},
+    RunStatus.CHECKING_PRICE: {RunStatus.APPROVAL_PENDING, RunStatus.QUOTE_CREATED},
+    RunStatus.APPROVAL_PENDING: {RunStatus.REJECTED, RunStatus.EXPIRED, RunStatus.QUOTE_CREATED},
+    RunStatus.QUOTE_CREATED: {RunStatus.QUOTE_SENT},
+    RunStatus.QUOTE_SENT: {RunStatus.CHANGE_REQUESTED, RunStatus.ACCEPTED, RunStatus.EXPIRED},
+    RunStatus.CHANGE_REQUESTED: {RunStatus.NORMALIZING},
+    RunStatus.ACCEPTED: {RunStatus.PAYMENT_LINK_SENT},
+    RunStatus.PAYMENT_LINK_SENT: {RunStatus.PAYMENT_PENDING},
+    RunStatus.PAYMENT_PENDING: {
+        RunStatus.PAYMENT_FAILED,
+        RunStatus.PAYMENT_EXPIRED,
+        RunStatus.PAYMENT_CONFIRMED,
+    },
+    RunStatus.PAYMENT_CONFIRMED: {RunStatus.INVOICE_GENERATED},
+    RunStatus.INVOICE_GENERATED: {RunStatus.ORDER_CONFIRMED},
+}
+
+
+class InvalidTransition(ValueError):
+    pass
+
+
+def assert_valid_transition(current: RunStatus, target: RunStatus) -> None:
+    allowed = ALLOWED_TRANSITIONS.get(current, set())
+    if target not in allowed:
+        raise InvalidTransition(f"cannot move run from {current} to {target}")

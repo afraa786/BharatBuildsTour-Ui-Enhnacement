@@ -52,7 +52,7 @@ EXPECTED_TABLES = {
 
 
 def test_model_registry() -> None:
-    assert set(Base.metadata.tables) == EXPECTED_TABLES
+    assert EXPECTED_TABLES <= set(Base.metadata.tables)
 
 
 def _postgres_env() -> dict[str, str]:

@@ -29,3 +29,12 @@ artifacts/
 .DS_Store
 .idea/
 .vscode/
+.claude/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example

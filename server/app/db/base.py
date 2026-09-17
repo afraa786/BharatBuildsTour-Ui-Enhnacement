@@ -7,8 +7,10 @@ class Base(DeclarativeBase):
     pass
 
 
-# Explicit registry: Alembic imports this module, so every commercial model is loaded here.
+# Explicit registry: Alembic imports this module, so every owned model is loaded here.
 MODEL_MODULES = (
+    "app.modules.runs.models",
+    "app.modules.whatsapp.models",
     "app.modules.identity.models",
     "app.modules.catalog.models",
     "app.modules.inventory.models",
