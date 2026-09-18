@@ -28,11 +28,22 @@ _REJECT_RE = re.compile(r"^reject\s+(rfq-\S+)$", re.IGNORECASE)
 _SHOW_RE = re.compile(r"^show\s+(rfq-\S+)$", re.IGNORECASE)
 _WHY_RE = re.compile(r"^why\s+was\s+(rfq-\S+)\s+blocked\??$", re.IGNORECASE)
 _OPEN_QUOTES_RE = re.compile(r"^show\s+open\s+quotes\s+today$", re.IGNORECASE)
+_SEND_PAYMENT_LINK_RE = re.compile(r"^send\s+payment\s+link\s+(rfq-\S+)$", re.IGNORECASE)
+_RESEND_PAYMENT_LINK_RE = re.compile(r"^resend\s+payment\s+link\s+(rfq-\S+)$", re.IGNORECASE)
+_SEND_INVOICE_RE = re.compile(r"^send\s+invoice\s+(rfq-\S+)$", re.IGNORECASE)
+_RESEND_INVOICE_RE = re.compile(r"^resend\s+invoice\s+(rfq-\S+)$", re.IGNORECASE)
+_REMINDER_DONE_RE = re.compile(r"^mark\s+reminder\s+done\s+(rfq-\S+)$", re.IGNORECASE)
+_ESCALATE_RE = re.compile(r"^escalate\s+(rfq-\S+)$", re.IGNORECASE)
+_PAUSE_RE = re.compile(r"^pause\s+(rfq-\S+)$", re.IGNORECASE)
+_CLOSE_RE = re.compile(r"^close\s+(rfq-\S+)$", re.IGNORECASE)
+_ASSIGN_VENDOR_RE = re.compile(r"^assign\s+vendor\s+(rfq-\S+)(?:\s+(.+))?$", re.IGNORECASE)
+_CREATE_REMINDER_RE = re.compile(r"^create\s+reminder\s+(rfq-\S+)(?:\s+(.+))?$", re.IGNORECASE)
+_PENDING_PAYMENTS_RE = re.compile(r"^show\s+pending\s+payments$", re.IGNORECASE)
+_LOW_STOCK_RE = re.compile(r"^show\s+low\s+stock$", re.IGNORECASE)
 
 HELP_TEXT = (
-    "Sorry, I didn't recognize that command. Try: Approve RFQ-1042, "
-    "Reject RFQ-1042, Show RFQ-1042, Why was RFQ-1042 blocked?, "
-    "Show open quotes today"
+    "Sorry, I didn't recognize that command. Try an exact admin command such as approve, reject, "
+    "show, payment link, invoice, open quotes, pending payments, or low stock."
 )
 
 
@@ -183,6 +194,93 @@ def _invoice_text(run: Run) -> str:
     return phrase(
         f"Your invoice {invoice_id} is ready. Reply if you want it sent again by email or WhatsApp."
     )
+
+
+def _send_payment_link_command(
+    db: Session, run_id: str, actor: str, *, resend: bool = False
+) -> list[OutboundMessage]:
+    run = get_run_by_run_id(db, run_id)
+    if run is None:
+        return [OutboundMessage(actor, f"{run_id} not found.")]
+    current = RunStatus(run.status)
+    if current in {RunStatus.PAYMENT_LINK_SENT, RunStatus.PAYMENT_PENDING}:
+        return [
+            OutboundMessage(run.buyer_wa_id, _payment_link_text(run)),
+            OutboundMessage(actor, f"Payment link resent for {run_id}."),
+        ]
+    if resend:
+        return [OutboundMessage(actor, f"{run_id} has no payment link to resend yet.")]
+    if current != RunStatus.QUOTE_SENT:
+        return [
+            OutboundMessage(
+                actor,
+                f"Cannot send payment link for {run_id} while status is {run.status}.",
+            )
+        ]
+    _transition(
+        db,
+        run,
+        RunStatus.ACCEPTED,
+        "Manager",
+        "Admin requested payment link",
+        {"actor": actor},
+    )
+    run.payment_id = run.payment_id or f"pay_{run.run_id.split('-')[1]}"
+    _transition(
+        db,
+        run,
+        RunStatus.PAYMENT_LINK_SENT,
+        "Accounts Desk",
+        "Payment link created (admin command)",
+    )
+    _transition(
+        db,
+        run,
+        RunStatus.PAYMENT_PENDING,
+        "Accounts Desk",
+        "Awaiting payment confirmation",
+    )
+    return [
+        OutboundMessage(run.buyer_wa_id, _payment_link_text(run)),
+        OutboundMessage(actor, f"Payment link sent for {run_id}."),
+    ]
+
+
+def _send_invoice_command(
+    db: Session, run_id: str, actor: str, *, resend: bool = False
+) -> list[OutboundMessage]:
+    run = get_run_by_run_id(db, run_id)
+    if run is None:
+        return [OutboundMessage(actor, f"{run_id} not found.")]
+    current = RunStatus(run.status)
+    if current in {RunStatus.INVOICE_GENERATED, RunStatus.ORDER_CONFIRMED}:
+        return [
+            OutboundMessage(run.buyer_wa_id, _invoice_text(run)),
+            OutboundMessage(actor, f"Invoice resent for {run_id}."),
+        ]
+    if resend:
+        return [OutboundMessage(actor, f"{run_id} has no invoice to resend yet.")]
+    if current != RunStatus.PAYMENT_CONFIRMED:
+        return [
+            OutboundMessage(
+                actor,
+                f"Cannot send invoice for {run_id} while status is {run.status}. "
+                "Payment must be provider-verified first.",
+            )
+        ]
+    run.invoice_id = run.invoice_id or f"INV-{run.run_id.split('-')[1]}"
+    _transition(
+        db,
+        run,
+        RunStatus.INVOICE_GENERATED,
+        "Invoice Desk",
+        "Invoice generated (admin command)",
+        {"actor": actor},
+    )
+    return [
+        OutboundMessage(run.buyer_wa_id, _invoice_text(run)),
+        OutboundMessage(actor, f"Invoice sent for {run_id}."),
+    ]
 
 
 def _important_updates_text(db: Session | None) -> str:
@@ -479,6 +577,50 @@ def _open_quotes_today_text(db: Session | None) -> str:
     return "\n".join(lines)
 
 
+def _pending_payments_text(db: Session | None) -> str:
+    if db is None:
+        return "I need the live run store to show pending payments."
+    statuses = {RunStatus.PAYMENT_LINK_SENT.value, RunStatus.PAYMENT_PENDING.value}
+    runs = [r for r in list_runs(db) if r.status in statuses]
+    if not runs:
+        return "No pending payments."
+    lines = ["Pending payments:"]
+    for r in runs:
+        total = r.quote_snapshot["total"] if r.quote_snapshot else "-"
+        lines.append(f"- {r.run_id}: ₹{total}")
+    return "\n".join(lines)
+
+
+def _low_stock_text() -> str:
+    low_stock = [
+        item for item in mock_desks.CATALOG if item["stock_qty"] <= item["reorder_threshold"]
+    ]
+    if not low_stock:
+        return "No low stock items."
+    lines = ["Low stock:"]
+    for item in low_stock:
+        lines.append(
+            f"- {item['sku']} {item['name']}: {item['stock_qty']} {item['unit']} "
+            f"(reorder at {item['reorder_threshold']})"
+        )
+    return "\n".join(lines)
+
+
+def _record_ops_command(
+    db: Session,
+    run_id: str,
+    actor: str,
+    event: str,
+    *,
+    metadata: dict | None = None,
+) -> list[OutboundMessage]:
+    run = get_run_by_run_id(db, run_id)
+    if run is None:
+        return [OutboundMessage(actor, f"{run_id} not found.")]
+    add_event(db, run, "Manager", event, {"actor": actor, **(metadata or {})})
+    return [OutboundMessage(actor, f"Noted for {run_id}: {event}.")]
+
+
 def process_admin_message(
     db: Session | None,
     admin_wa_id: str,
@@ -512,6 +654,72 @@ def process_admin_message(
         return [OutboundMessage(admin_wa_id, _why_blocked_text(db, m.group(1).upper()))]
     if _OPEN_QUOTES_RE.match(stripped):
         return [OutboundMessage(admin_wa_id, _open_quotes_today_text(db))]
+    if _PENDING_PAYMENTS_RE.match(stripped):
+        return [OutboundMessage(admin_wa_id, _pending_payments_text(db))]
+    if _LOW_STOCK_RE.match(stripped):
+        return [OutboundMessage(admin_wa_id, _low_stock_text())]
+    if m := _SEND_PAYMENT_LINK_RE.match(stripped):
+        if db is None:
+            return [OutboundMessage(admin_wa_id, "Payment-link actions need the live run store.")]
+        return _send_payment_link_command(db, m.group(1).upper(), admin_wa_id)
+    if m := _RESEND_PAYMENT_LINK_RE.match(stripped):
+        if db is None:
+            return [OutboundMessage(admin_wa_id, "Payment-link actions need the live run store.")]
+        return _send_payment_link_command(db, m.group(1).upper(), admin_wa_id, resend=True)
+    if m := _SEND_INVOICE_RE.match(stripped):
+        if db is None:
+            return [OutboundMessage(admin_wa_id, "Invoice actions need the live run store.")]
+        return _send_invoice_command(db, m.group(1).upper(), admin_wa_id)
+    if m := _RESEND_INVOICE_RE.match(stripped):
+        if db is None:
+            return [OutboundMessage(admin_wa_id, "Invoice actions need the live run store.")]
+        return _send_invoice_command(db, m.group(1).upper(), admin_wa_id, resend=True)
+    if m := _ESCALATE_RE.match(stripped):
+        if db is None:
+            return [OutboundMessage(admin_wa_id, "Escalation actions need the live run store.")]
+        return _record_ops_command(
+            db, m.group(1).upper(), admin_wa_id, "Escalated by admin command"
+        )
+    if m := _REMINDER_DONE_RE.match(stripped):
+        if db is None:
+            return [OutboundMessage(admin_wa_id, "Reminder actions need the live run store.")]
+        return _record_ops_command(db, m.group(1).upper(), admin_wa_id, "Reminder marked done")
+    if m := _PAUSE_RE.match(stripped):
+        if db is None:
+            return [OutboundMessage(admin_wa_id, "Pause actions need the live run store.")]
+        return _record_ops_command(db, m.group(1).upper(), admin_wa_id, "Pause requested")
+    if m := _CLOSE_RE.match(stripped):
+        if db is None:
+            return [OutboundMessage(admin_wa_id, "Close actions need the live run store.")]
+        return _record_ops_command(db, m.group(1).upper(), admin_wa_id, "Close requested")
+    if m := _ASSIGN_VENDOR_RE.match(stripped):
+        if db is None:
+            return [OutboundMessage(admin_wa_id, "Vendor assignment needs the live run store.")]
+        vendor = (m.group(2) or "").strip()
+        if not vendor:
+            return [
+                OutboundMessage(
+                    admin_wa_id, f"Tell me which vendor to assign for {m.group(1).upper()}."
+                )
+            ]
+        return _record_ops_command(
+            db,
+            m.group(1).upper(),
+            admin_wa_id,
+            "Vendor assigned",
+            metadata={"vendor": vendor},
+        )
+    if m := _CREATE_REMINDER_RE.match(stripped):
+        if db is None:
+            return [OutboundMessage(admin_wa_id, "Reminder actions need the live run store.")]
+        reminder = (m.group(2) or "").strip()
+        return _record_ops_command(
+            db,
+            m.group(1).upper(),
+            admin_wa_id,
+            "Reminder created",
+            metadata={"reminder": reminder or None},
+        )
 
     if decision.intent is IntentType.APPROVE_QUOTE:
         return [
