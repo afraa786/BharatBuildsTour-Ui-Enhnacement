@@ -1,7 +1,7 @@
 /**
  * agentManager.ts
  *
- * Agent lifecycle helpers for the Agent Office visualiser.
+ * Agent lifecycle helpers for the embedded visualizer.
  *
  * Lifecycle:
  *   1. agent_spawned  → new-hire state → walk from door to assigned desk
@@ -372,6 +372,11 @@ export function createAgent(partial: {
   role: string
   task?: string
   spot: AgentSpot
+  visualId?: string
+  color?: string
+  emoji?: string
+  isManager?: boolean
+  workflowStatus?: Agent['workflowStatus']
 }): Agent {
   const cfg = AGENT_CONFIGS[partial.role] ?? AGENT_CONFIGS['default']
   const entry = ROOMS['main-office'].entryPoint
@@ -391,8 +396,11 @@ export function createAgent(partial: {
     spriteFacing: partial.spot.spriteFacing,
     task: partial.task,
     statusText: spawnMessage(),
-    color: cfg.color,
-    emoji: cfg.emoji,
+    color: partial.color ?? cfg.color,
+    emoji: partial.emoji ?? cfg.emoji,
+    visualId: partial.visualId,
+    isManager: partial.isManager,
+    workflowStatus: partial.workflowStatus ?? 'idle',
     hiredAt: Date.now(),
   }
 }

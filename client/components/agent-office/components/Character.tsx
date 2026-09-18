@@ -72,7 +72,7 @@ const Character: React.FC<CharacterProps> = ({ agent, idleDurationMs = 0, zIndex
   const [turnedAround, setTurnedAround] = useState(false)
 
   const isMoving = agent.state === 'new-hire' || agent.state === 'walking-to-desk' ||
-    agent.state === 'coffee-break' || agent.state === 'completed' || agent.state === 'changing-room'
+    agent.state === 'walking-to-manager' || agent.state === 'coffee-break' || agent.state === 'completed' || agent.state === 'changing-room'
 
   // Calculate movement direction when walking
   const dx = agent.position.x - prevPosRef.current.x
@@ -122,7 +122,7 @@ const Character: React.FC<CharacterProps> = ({ agent, idleDurationMs = 0, zIndex
   }, [agent.state])
 
   const animState = getAnimState(agent.state)
-  const charBase = getCharBase(agent.role)
+  const charBase = agent.visualId ?? getCharBase(agent.role)
   const theme = useTheme() // Why: re-render on theme toggle so sprite path updates
   const spriteSrc = getSpritePath(agent.id, agent.role, charBase, directionRef.current)
   void theme
@@ -131,9 +131,19 @@ const Character: React.FC<CharacterProps> = ({ agent, idleDurationMs = 0, zIndex
     ? '/sprites/effects/typing.png'
     : getEffect(agent.state, idleDurationMs, agent.statusText, agent.id, agent.task, agent.role)
 
+  const bubblePlacement = agent.position.x < 18
+    ? 'bubble-edge-left'
+    : agent.position.x > 82
+      ? 'bubble-edge-right'
+      : agent.position.y < 24
+        ? 'bubble-edge-top'
+        : ''
+
   return (
     <div
-      className={`character-wrapper state-${animState}`}
+      className={`character-wrapper state-${animState} ${bubblePlacement}`}
+      data-agent-status={agent.workflowStatus ?? 'idle'}
+      aria-label={`${agent.name} · ${agent.workflowStatus ?? 'idle'}`}
       style={{
         left: `${agent.position.x}%`,
         top: `${agent.position.y}%`,
@@ -154,7 +164,7 @@ const Character: React.FC<CharacterProps> = ({ agent, idleDurationMs = 0, zIndex
           alt={agent.name}
           className="char-sprite"
           style={{
-            height: agent.id.startsWith('boss-') ? 85 : 78,
+            height: agent.isManager ? 85 : 78,
             width: 'auto',
             filter: `drop-shadow(0 0 1px ${agent.color}) drop-shadow(0 0 0.5px #000)`,
             animationDelay: `${(agent.id.charCodeAt(0) * 0.37) % 3}s`,

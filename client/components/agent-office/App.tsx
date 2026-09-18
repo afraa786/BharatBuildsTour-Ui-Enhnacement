@@ -27,7 +27,21 @@ import {
   coffeeMessage,
   waterMessage,
 } from './agentManager'
-import { BOSS_ROLE, BOSS_NAME } from './config'
+import { ROLE_TO_CHAR } from './config'
+import {
+  agentSimulationConfig,
+  getAgentConfig,
+  isAllowedConnection,
+  scheduleMockEvents,
+  toAgentVisualEvent,
+  type AgentConfig,
+  type AgentStatus,
+} from '@/lib/agent-simulation/simulation'
+import {
+  createInitialSimulationState,
+  reduceSimulationState,
+  type SimulationState,
+} from '@/lib/agent-simulation/simulation-state'
 import { pickEvent } from './events'
 import { getInteraction } from './interactions'
 import {
@@ -113,9 +127,63 @@ interface AgentChatFeed {
   messages: AgentChatFeedMessage[]
 }
 
-// The boss — always in the office, permanent desk (spot-1)
-const BOSS_ID = `boss-${BOSS_NAME.toLowerCase()}`
-const BOSS_SPOT = MAIN_ROOM.agentSpots.find(s => s.id === 'spot-1') ?? MAIN_ROOM.agentSpots.find(s => s.type === 'desk') ?? null
+const USE_MOCK_AGENT_SIMULATION = process.env.NEXT_PUBLIC_AGENT_SIMULATION_MOCK !== 'false'
+
+for (const profile of agentSimulationConfig.agents) {
+  AGENT_CONFIGS[profile.role] = { color: profile.color, emoji: profile.emoji, title: profile.name }
+  ROLE_TO_CHAR[profile.role] = profile.visualId
+}
+
+const MANAGER_PROFILE = getAgentConfig(agentSimulationConfig.managerAgentId) ?? agentSimulationConfig.agents[0]
+const ASSISTANT_PROFILE = agentSimulationConfig.agents.find(agent => agent.role === 'assistant') ?? agentSimulationConfig.agents[1] ?? MANAGER_PROFILE
+const BOSS_ID = MANAGER_PROFILE.id
+const BOSS_ROLE = MANAGER_PROFILE.role
+const ASSISTANT_ID = ASSISTANT_PROFILE.id
+const ASSISTANT_ROLE = ASSISTANT_PROFILE.role
+const BOSS_SPOT = MAIN_ROOM.agentSpots.find(s => s.id === MANAGER_PROFILE.spotId) ?? MAIN_ROOM.agentSpots.find(s => s.type === 'desk') ?? null
+
+function profileStatusToAgentState(status: AgentStatus): Agent['state'] {
+  return status === 'working' ? 'working' : 'idle'
+}
+
+function parseAgentStatus(value: string | undefined): AgentStatus {
+  if (value === 'working' || value === 'waiting' || value === 'completed' || value === 'blocked' || value === 'failed') return value
+  return 'idle'
+}
+
+function interactionPosition(sender: Agent, recipient: Agent): { x: number; y: number } {
+  const dx = sender.deskPosition.x - recipient.deskPosition.x
+  const dy = sender.deskPosition.y - recipient.deskPosition.y
+  const distance = Math.sqrt(dx * dx + dy * dy)
+  const offset = 4.5
+  const x = recipient.deskPosition.x + (distance > 0 ? (dx / distance) * offset : offset)
+  const y = recipient.deskPosition.y + (distance > 0 ? (dy / distance) * offset : 0)
+  return {
+    x: Math.max(8, Math.min(92, x)),
+    y: Math.max(14, Math.min(88, y)),
+  }
+}
+
+function createConfiguredAgent(profile: AgentConfig): Agent {
+  const spot = MAIN_ROOM.agentSpots.find(candidate => candidate.id === profile.spotId) ?? assignSpot([], MAIN_ROOM.agentSpots)
+  if (!spot) throw new Error(`No desk available for configured agent ${profile.id}`)
+  const agent = createAgent({
+    id: profile.id,
+    name: profile.name,
+    role: profile.role,
+    spot,
+    visualId: profile.visualId,
+    color: profile.color,
+    emoji: profile.emoji,
+    isManager: profile.id === agentSimulationConfig.managerAgentId,
+    workflowStatus: profile.initialStatus,
+  })
+  return {
+    ...agent,
+    state: profileStatusToAgentState(profile.initialStatus),
+    pathQueue: computePath(agent.position, agent.targetPosition),
+  }
+}
 
 function createBoss(): Agent {
   const cfg = AGENT_CONFIGS[BOSS_ROLE] ?? AGENT_CONFIGS['default']
@@ -139,26 +207,27 @@ function createBoss(): Agent {
     statusText: 'clocked in',
     color: cfg.color,
     emoji: cfg.emoji,
+    visualId: MANAGER_PROFILE.visualId,
+    isManager: true,
+    workflowStatus: MANAGER_PROFILE.initialStatus,
     hiredAt: Date.now(),
     pathQueue: computePath(entry, target),
   }
 }
 
-// Claude — the assistant, always in the office at spot-2
-const CLAUDE_ID = 'assistant-claude'
-const CLAUDE_ROLE = 'assistant'
-const CLAUDE_SPOT = MAIN_ROOM.agentSpots.find(s => s.id === 'spot-2') ?? null
+// The configured assistant agent.
+const ASSISTANT_SPOT = MAIN_ROOM.agentSpots.find(s => s.id === ASSISTANT_PROFILE.spotId) ?? null
 
-function createClaude(): Agent {
-  const cfg = AGENT_CONFIGS[CLAUDE_ROLE] ?? AGENT_CONFIGS['default']
-  const spot = CLAUDE_SPOT ?? { id: 'spot-2', type: 'desk' as const, x: 37.9, y: 68.2, spriteFacing: 'rear-right' as const }
+function createAssistant(): Agent {
+  const cfg = AGENT_CONFIGS[ASSISTANT_ROLE] ?? AGENT_CONFIGS['default']
+  const spot = ASSISTANT_SPOT ?? { id: 'spot-2', type: 'desk' as const, x: 37.9, y: 68.2, spriteFacing: 'rear-right' as const }
   const entry = MAIN_ROOM.entryPoint
   const target = { x: spot.x, y: spot.y }
   return {
-    id: CLAUDE_ID,
+    id: ASSISTANT_ID,
     name: cfg.title,
     type: 'subagent',
-    role: CLAUDE_ROLE,
+    role: ASSISTANT_ROLE,
     state: 'new-hire',
     position: { x: entry.x, y: entry.y },
     targetPosition: target,
@@ -171,6 +240,8 @@ function createClaude(): Agent {
     statusText: 'clocked in',
     color: cfg.color,
     emoji: cfg.emoji,
+    visualId: ASSISTANT_PROFILE.visualId,
+    workflowStatus: ASSISTANT_PROFILE.initialStatus,
     hiredAt: Date.now() + 500, // arrives just after the boss
     pathQueue: computePath(entry, target),
   }
@@ -261,11 +332,11 @@ const SIM_CHATTER = [
   { sender: 'Reviewer', role: 'code-reviewer', msg: 'lgtm on the PR, just one nit on the error handling' },
   { sender: 'DBA', role: 'database-architect', msg: 'added an index on user_id, queries are 10x faster now' },
   { sender: 'DevOps', role: 'devops-engineer', msg: 'staging deploy is green, promoting to prod' },
-  { sender: 'Claude', role: 'assistant', msg: 'the printer jammed again. third time today.' },
+  { sender: 'Assistant', role: 'assistant', msg: 'the printer jammed again. third time today.' },
   { sender: 'Tester', role: 'test-engineer', msg: 'coverage is at 94%, just need the edge cases' },
   { sender: 'PerfEng', role: 'performance-engineer', msg: 'shaved 200ms off the initial load, LCP is under 2s' },
   { sender: 'Frontend', role: 'frontend-developer', msg: 'responsive layout done, looks great on mobile' },
-  { sender: 'Claude', role: 'assistant', msg: 'someone get the coffee machine, its making that sound again' },
+  { sender: 'Assistant', role: 'assistant', msg: 'someone get the coffee machine, its making that sound again' },
   { sender: 'Architect', role: 'architect-reviewer', msg: 'the new module boundary looks solid, good separation' },
   { sender: 'AI Eng', role: 'ai-engineer', msg: 'embeddings are indexed, RAG pipeline is live' },
   { sender: 'TS Pro', role: 'typescript-pro', msg: 'fixed the generic inference, no more any casts' },
@@ -282,11 +353,11 @@ const OFFICE_SIM_CHATTER = [
   { sender: 'Reviewer', role: 'code-reviewer', msg: 'the ream count checks out. approved.' },
   { sender: 'DBA', role: 'database-architect', msg: 'indexed the client list alphabetically. like the old days.' },
   { sender: 'DevOps', role: 'devops-engineer', msg: 'loading the delivery truck — Schrute beet vans.' },
-  { sender: 'Claude', role: 'assistant', msg: 'Michael is in the conference room. again. please help.' },
+  { sender: 'Assistant', role: 'assistant', msg: 'the manager is in the conference room again. please help.' },
   { sender: 'Tester', role: 'test-engineer', msg: 'tested the paper quality. still paper. 94% paper.' },
   { sender: 'PerfEng', role: 'performance-engineer', msg: 'the printer warms up 200ms faster. small wins.' },
   { sender: 'Frontend', role: 'frontend-developer', msg: 'mobile layout works — even Creed noticed' },
-  { sender: 'Claude', role: 'assistant', msg: 'someone get the printer, it\'s on fire. literal fire.' },
+  { sender: 'Assistant', role: 'assistant', msg: 'someone get the printer, it\'s on fire. literal fire.' },
   { sender: 'Architect', role: 'architect-reviewer', msg: 'the Finer Things Club charter is immaculate' },
   { sender: 'AI Eng', role: 'ai-engineer', msg: 'teaching the copier to recognize Stanley\'s handwriting' },
   { sender: 'TS Pro', role: 'typescript-pro', msg: 'false. that is not a staple. it is a Dwight.' },
@@ -305,11 +376,22 @@ const OFFICE_SIM_CHATTER = [
 const App: React.FC = () => {
   // All hooks must be at the top — before any conditional returns.
   const theme = useTheme() // Why: re-render rooms + agents when /the-office toggles
-  const [agents, setAgents] = useState<Agent[]>(() => [createBoss(), createClaude()])
-  const agentMetaRef = useRef<Map<string, AgentMeta>>(new Map([
-    [BOSS_ID, { spawnedAt: Date.now(), arrivedAtDeskAt: Date.now(), idleSince: null, onBreak: false, breakStartedAt: null }],
-    [CLAUDE_ID, { spawnedAt: Date.now(), arrivedAtDeskAt: Date.now(), idleSince: null, onBreak: false, breakStartedAt: null }],
-  ]))
+  const [agents, setAgents] = useState<Agent[]>(() => {
+    if (!USE_MOCK_AGENT_SIMULATION) return [createBoss(), createAssistant()]
+    return agentSimulationConfig.agents.map(createConfiguredAgent)
+  })
+  const [simulationState, setSimulationState] = useState<SimulationState>(() =>
+    createInitialSimulationState(agentSimulationConfig),
+  )
+  const agentMetaRef = useRef<Map<string, AgentMeta>>(new Map(
+    agents.map(agent => [agent.id, {
+      spawnedAt: Date.now(),
+      arrivedAtDeskAt: null,
+      idleSince: null,
+      onBreak: false,
+      breakStartedAt: null,
+    }]),
+  ))
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [chatTypingUser, setChatTypingUser] = useState<string | null>(null)
@@ -443,6 +525,7 @@ const App: React.FC = () => {
 
   // Video mode: auto-type text into the Slack input
   const [autoTypeText, setAutoTypeText] = useState<string | undefined>(undefined)
+  const queuedInteractionEventsRef = useRef<OfficeEvent[]>([])
 
   // ---------------------------------------------------------------------------
   // Slack chat helpers
@@ -560,16 +643,17 @@ const App: React.FC = () => {
     }
   })
 
-  // Boss & Claude arrival messages (ref guard prevents StrictMode double-fire)
+  // Manager and assistant arrival messages (ref guard prevents StrictMode double-fire)
   const arrivedRef = useRef(false)
   useEffect(() => {
+    if (USE_MOCK_AGENT_SIMULATION) return
     if (arrivedRef.current) return
     arrivedRef.current = true
     const bossCfg = AGENT_CONFIGS[BOSS_ROLE] ?? AGENT_CONFIGS['default']
     addMsg(bossCfg.title, BOSS_ROLE, bossCfg.color, '👑 clocked in')
-    const claudeCfg = AGENT_CONFIGS[CLAUDE_ROLE] ?? AGENT_CONFIGS['default']
+    const assistantCfg = AGENT_CONFIGS[ASSISTANT_ROLE] ?? AGENT_CONFIGS['default']
     setTimeout(() => {
-      addMsg(claudeCfg.title, CLAUDE_ROLE, claudeCfg.color, '🤖 clocked in')
+      addMsg(assistantCfg.title, ASSISTANT_ROLE, assistantCfg.color, '🤖 clocked in')
     }, 1500)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -697,10 +781,10 @@ const App: React.FC = () => {
             return prev.map(a => {
               if (a.id !== id) return a
               const cfg = AGENT_CONFIGS[a.role] ?? AGENT_CONFIGS['default']
-              effects.push({
+              pendingEffectsRef.current.push({
                 msg: { sender: a.name, role: a.role, color: cfg.color, text: `⚡ ${statusMsg}` },
               })
-              return { ...a, state: 'working' as const, statusText: statusMsg }
+              return { ...a, state: 'working' as const, workflowStatus: 'working', statusText: statusMsg }
             })
           }
 
@@ -718,6 +802,57 @@ const App: React.FC = () => {
           }
 
           return prev
+        }
+
+        // ── Config-driven agent status ────────────────────────────────────
+        case 'agent_status': {
+          const id = event.agentId ?? event.agent?.id
+          if (!id) return prev
+          const workflowStatus = parseAgentStatus(event.status)
+          return prev.map(agent => agent.id === id
+            ? {
+                ...agent,
+                workflowStatus,
+                state: profileStatusToAgentState(workflowStatus),
+                statusText: event.text ?? event.status ?? workflowStatus,
+              }
+            : agent)
+        }
+
+        // ── Agent-to-agent communication ──────────────────────────────────
+        case 'agent_message': {
+          const fromId = event.fromAgent
+          const toId = event.toAgent
+          if (!fromId || !toId) return prev
+          if (!isAllowedConnection(fromId, toId)) return prev
+          const sender = prev.find(agent => agent.id === fromId)
+          const recipient = prev.find(agent => agent.id === toId)
+          if (!sender || !recipient) return prev
+
+          if (sender.interaction || recipient.interaction || sender.state === 'talking-to-manager') {
+            queuedInteractionEventsRef.current.push(event)
+            return prev
+          }
+
+          const workflowStatus = parseAgentStatus(event.status)
+          const target = interactionPosition(sender, recipient)
+          const message = event.text ?? workflowStatus
+
+          return prev.map(agent => {
+            if (agent.id === fromId) {
+              return {
+                ...agent,
+                state: 'walking-to-manager' as const,
+                workflowStatus: 'working',
+                statusText: `Walking to ${recipient.name}`,
+                targetPosition: target,
+                pathQueue: computePath(agent.position, target),
+                interaction: { recipientId: toId, message, phase: 'to-recipient' as const },
+              }
+            }
+            if (agent.id === toId) return { ...agent, workflowStatus, statusText: message }
+            return agent
+          })
         }
 
         // ── Agent completed task ─────────────────────────────────────────────
@@ -840,13 +975,13 @@ const App: React.FC = () => {
           return prev
         }
 
-        // ── Chat message from server (Claude replying via an agent) ──────
+        // ── Chat message from server ─────────────────────────────────────
         case 'chat_message': {
           const sender = event.sender ?? 'Agent'
           const text = event.text ?? ''
           const ts = (event as any).timestamp as number | undefined
 
-          // Clear typing indicator when Claude sends a real message
+          // Clear typing indicator when an agent sends a real message
           setChatTypingUser(null)
 
           // Skip messages from the boss — those are added locally by onSendMessage
@@ -870,23 +1005,23 @@ const App: React.FC = () => {
           const role = (event as any).role as string | undefined
           let msgSender: string, msgRole: string, msgColor: string
 
-          // If sender is "Claude" (from AI watcher/bridge), always attribute to Claude
-          if (sender.toLowerCase() === 'claude') {
-            const claudeCfg = AGENT_CONFIGS[CLAUDE_ROLE] ?? AGENT_CONFIGS['default']
-            msgSender = claudeCfg.title; msgRole = CLAUDE_ROLE; msgColor = claudeCfg.color
+          // If sender is the configured assistant, preserve that attribution.
+          if (sender.toLowerCase() === ASSISTANT_PROFILE.name.toLowerCase()) {
+            const assistantCfg = AGENT_CONFIGS[ASSISTANT_ROLE] ?? AGENT_CONFIGS['default']
+            msgSender = assistantCfg.title; msgRole = ASSISTANT_ROLE; msgColor = assistantCfg.color
           } else if (role && AGENT_CONFIGS[role]) {
             const cfg = AGENT_CONFIGS[role]
             msgSender = cfg.title; msgRole = role; msgColor = cfg.color
           } else {
-            // Attribute to a working agent or fall back to Claude
-            const workers = prev.filter(a => a.id !== BOSS_ID && a.id !== CLAUDE_ID && a.state === 'working')
+            // Attribute to a working agent or fall back to the assistant.
+            const workers = prev.filter(a => a.id !== BOSS_ID && a.id !== ASSISTANT_ID && a.state === 'working')
             if (workers.length > 0) {
               const agent = workers[Math.floor(Math.random() * workers.length)]
               const cfg = AGENT_CONFIGS[agent.role] ?? AGENT_CONFIGS['default']
               msgSender = agent.name; msgRole = agent.role; msgColor = cfg.color
             } else {
-              const claudeCfg = AGENT_CONFIGS[CLAUDE_ROLE] ?? AGENT_CONFIGS['default']
-              msgSender = claudeCfg.title; msgRole = CLAUDE_ROLE; msgColor = claudeCfg.color
+              const assistantCfg = AGENT_CONFIGS[ASSISTANT_ROLE] ?? AGENT_CONFIGS['default']
+              msgSender = assistantCfg.title; msgRole = ASSISTANT_ROLE; msgColor = assistantCfg.color
             }
           }
           // Use setTimeout to escape the setAgents updater before calling addMsg
@@ -908,6 +1043,28 @@ const App: React.FC = () => {
   // ---------------------------------------------------------------------------
 
   useAgentSocket({ onEvent: handleEvent, url: 'ws://localhost:3334/ws', disabled: isSimMode })
+
+  // Replace only this stream with a backend adapter when the real event source is ready.
+  useEffect(() => {
+    if (!USE_MOCK_AGENT_SIMULATION || isSimMode) return
+
+    const timers = scheduleMockEvents().flatMap(scheduled => {
+      const visualEvent = toAgentVisualEvent(scheduled.event)
+      if (!visualEvent) return []
+      return [setTimeout(() => {
+        setSimulationState(previous => reduceSimulationState(previous, scheduled.event))
+        handleEvent({
+          type: visualEvent.type,
+          fromAgent: visualEvent.fromAgent,
+          toAgent: visualEvent.toAgent,
+          status: visualEvent.status,
+          text: visualEvent.text,
+        })
+      }, scheduled.delayMs + 1800)]
+    })
+
+    return () => timers.forEach(clearTimeout)
+  }, [handleEvent])
 
   // ---------------------------------------------------------------------------
   // Simulation loop — spawns/completes fake agents (only in ?sim mode)
@@ -1462,7 +1619,41 @@ const App: React.FC = () => {
               Math.abs(agent.targetPosition.y - DOOR_TARGET.y) < ARRIVAL_THRESHOLD
             )
 
-            if (agent.state === 'new-hire' || agent.state === 'walking-to-desk') {
+            if (agent.state === 'walking-to-manager' && agent.interaction?.phase === 'to-recipient') {
+              const interaction = agent.interaction
+              const recipient = prev.find(candidate => candidate.id === interaction.recipientId)
+              const cfg = AGENT_CONFIGS[agent.role] ?? AGENT_CONFIGS.default
+              pendingEffectsRef.current.push({
+                msg: {
+                  sender: agent.name,
+                  role: agent.role,
+                  color: agent.color || cfg.color,
+                  text: recipient ? `→ ${recipient.name}: ${interaction.message}` : interaction.message,
+                },
+                sfx: 'notification',
+              })
+              updated = {
+                ...agent,
+                position,
+                state: 'talking-to-manager' as const,
+                statusText: interaction.message,
+                interaction: { ...interaction, phase: 'returning' as const },
+              }
+              changed = true
+
+              setTimeout(() => {
+                setAgents(current => current.map(candidate => {
+                  if (candidate.id !== agent.id || !candidate.interaction) return candidate
+                  return {
+                    ...candidate,
+                    state: 'walking-to-desk' as const,
+                    targetPosition: { ...candidate.deskPosition },
+                    pathQueue: computePath(candidate.position, candidate.deskPosition),
+                    statusText: 'Returning to desk',
+                  }
+                }))
+              }, 1800)
+            } else if (agent.state === 'new-hire' || agent.state === 'walking-to-desk') {
               if (isAtDesk || agent.state === 'new-hire') {
                 meta.arrivedAtDeskAt = nowMs
                 meta.onBreak = false
@@ -1470,8 +1661,14 @@ const App: React.FC = () => {
                 if (agent.assignedSpotId === 'spot-filing') {
                   setFurnitureStates(prev => ({ ...prev, 'filing-1': 'open' }))
                 }
-                updated = { ...agent, position, state: 'working', statusText: workMessage() }
+                const queuedEvent = agent.interaction?.phase === 'returning'
+                  ? queuedInteractionEventsRef.current.shift()
+                  : undefined
+                updated = { ...agent, position, state: 'working', statusText: workMessage(), interaction: undefined }
                 changed = true
+                if (queuedEvent) {
+                  setTimeout(() => handleEvent(queuedEvent), 250)
+                }
               }
             } else if (agent.state === 'completed' && isAtDoor) {
               updated = { ...agent, position }
@@ -1579,7 +1776,7 @@ const App: React.FC = () => {
 
       // Prune completed agents at the door (never prune the boss)
       const pruned = next.filter(a => {
-        if (a.id === BOSS_ID || a.id === CLAUDE_ID) return true
+        if (a.id === BOSS_ID || a.id === ASSISTANT_ID) return true
         if (a.state === 'completed') {
           const atDoor = (
             Math.abs(a.position.x - DOOR_TARGET.x) < ARRIVAL_THRESHOLD * 2 &&
@@ -1828,12 +2025,16 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="app-wrapper">
+    <div
+      className="app-wrapper"
+      data-active-agent={simulationState.activeAgentId ?? ''}
+      data-last-run={simulationState.lastEvent?.run_id ?? ''}
+    >
       <div className="title-bar">
         <div className="title-bar-dot" style={{ background: '#ff5f57' }} />
         <div className="title-bar-dot" style={{ background: '#febc2e' }} />
         <div className="title-bar-dot" style={{ background: '#28c840' }} />
-        <span className="title-bar-text">CLAUDE CODE — AGENT OFFICE</span>
+        <span className="title-bar-text">{agentSimulationConfig.displayTitle ?? 'AGENT WORKSPACE'}</span>
         <button
           className="title-bar-daynight"
           onClick={() => setDayNightMode(prev =>
@@ -1982,7 +2183,7 @@ const App: React.FC = () => {
           const bossCfg = AGENT_CONFIGS[BOSS_ROLE] ?? AGENT_CONFIGS['default']
           addMsg(bossCfg.title, BOSS_ROLE, bossCfg.color, text)
           setAutoTypeText(undefined)
-          // Send to server so Claude can read it
+          // Send to the event server so the agent runtime can read it
           fetch('http://127.0.0.1:3334/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

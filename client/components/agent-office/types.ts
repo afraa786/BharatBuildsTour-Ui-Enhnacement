@@ -1,4 +1,5 @@
 import type { RoomId } from './rooms'
+import type { AgentStatus } from '@/lib/agent-simulation/simulation'
 
 export type AgentState =
   | 'idle'
@@ -33,18 +34,28 @@ export interface Agent {
   spriteFacing?: 'front-left' | 'front-right' | 'rear-left' | 'rear-right'
   color: string
   emoji: string
+  visualId?: string
+  isManager?: boolean
+  workflowStatus?: AgentStatus
+  interaction?: {
+    recipientId: string
+    message: string
+    phase: 'to-recipient' | 'returning'
+  }
   hiredAt: number
   pathQueue?: { x: number; y: number }[]  // waypoints to walk through
 }
 
 export interface OfficeEvent {
-  type: 'agent_spawned' | 'agent_working' | 'agent_completed' | 'mcp_call' | 'mcp_done' | 'new_hire' | 'chat_message' | 'chat_typing' | 'chat_reaction' | 'chat_seen'
+  type: 'agent_spawned' | 'agent_working' | 'agent_completed' | 'agent_status' | 'agent_message' | 'mcp_call' | 'mcp_done' | 'new_hire' | 'chat_message' | 'chat_typing' | 'chat_reaction' | 'chat_seen'
   agent?: Partial<Agent>
   agentId?: string
   status?: string
   result?: string
   sender?: string
   text?: string
+  fromAgent?: string
+  toAgent?: string
 }
 
 import { BOSS_NAME, BOSS_COLOR, BOSS_EMOJI } from './config'
@@ -77,6 +88,6 @@ export const AGENT_CONFIGS: Record<string, { color: string; emoji: string; title
   'seo':                   { color: '#4caf50', emoji: '📊', title: 'SEO' },
   'gmail':                 { color: '#ea4335', emoji: '📧', title: 'Gmail' },
   'ios-simulator':         { color: '#a2aaad', emoji: '📱', title: 'iOS' },
-  'assistant':             { color: '#cc785c', emoji: '🤖', title: 'Claude' },
+  'assistant':             { color: '#cc785c', emoji: '🤖', title: 'Assistant' },
   'default':               { color: '#95a5a6', emoji: '👤', title: 'Worker' },
 }
