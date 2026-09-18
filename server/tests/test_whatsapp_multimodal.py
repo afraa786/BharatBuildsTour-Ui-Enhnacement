@@ -1,7 +1,12 @@
+from contextlib import contextmanager
+from uuid import uuid4
+
 import pytest
 
 from app.core.config import get_settings
 from app.modules.whatsapp import client
+from app.modules.whatsapp import service as whatsapp_service
+from app.modules.whatsapp.routing import WhatsAppExperience, WhatsAppRoutingContext
 from app.modules.whatsapp.service import (
     ADMIN_BOT_UNAUTHORIZED_TEXT,
     _extract_inbound_messages,
@@ -21,6 +26,16 @@ class FakeDb:
 
     def rollback(self):
         pass
+
+    @contextmanager
+    def begin_nested(self):
+        yield
+
+
+def _fake_owner_manager_context(db, phone_number_id, *, provider="meta_whatsapp"):
+    return WhatsAppRoutingContext(
+        provider, phone_number_id, uuid4(), WhatsAppExperience.OWNER_MANAGER
+    )
 
 
 def _single_text_payload(*, phone_number_id: str, wa_id: str, text: str) -> dict:
@@ -208,6 +223,7 @@ async def test_admin_bot_rejects_non_admin_order_flow(monkeypatch) -> None:
 
     monkeypatch.setattr(client, "mark_read_with_typing", fake_mark_read)
     monkeypatch.setattr(client, "send_message", fake_send_message)
+    monkeypatch.setattr(whatsapp_service, "resolve_routing_context", _fake_owner_manager_context)
 
     await handle_webhook_payload(
         FakeDb(),
@@ -237,6 +253,7 @@ async def test_admin_bot_admin_sender_stays_manager_scoped(monkeypatch) -> None:
 
     monkeypatch.setattr(client, "mark_read_with_typing", fake_mark_read)
     monkeypatch.setattr(client, "send_message", fake_send_message)
+    monkeypatch.setattr(whatsapp_service, "resolve_routing_context", _fake_owner_manager_context)
 
     await handle_webhook_payload(
         FakeDb(),

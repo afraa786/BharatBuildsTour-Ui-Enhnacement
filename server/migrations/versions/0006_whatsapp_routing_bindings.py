@@ -1,7 +1,7 @@
 """Add trusted receiving-number bindings and Meta delivery status records.
 
 Revision ID: 0006_whatsapp_routing_bindings
-Revises: 0005_buyers_boolean_customer
+Revises: 0006_buyer_cart_sessions
 """
 
 from collections.abc import Sequence
@@ -11,7 +11,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "0006_whatsapp_routing_bindings"
-down_revision: str | Sequence[str] | None = "0005_buyers_boolean_customer"
+down_revision: str | Sequence[str] | None = "0006_buyer_cart_sessions"
 branch_labels = None
 depends_on = None
 

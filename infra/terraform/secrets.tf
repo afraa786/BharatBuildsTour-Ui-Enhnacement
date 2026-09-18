@@ -19,6 +19,12 @@ resource "aws_ssm_parameter" "whatsapp_biz_verify_token" {
   value = var.whatsapp_biz_verify_token
 }
 
+resource "aws_ssm_parameter" "whatsapp_app_secret" {
+  name  = "/${var.project}/whatsapp_app_secret"
+  type  = "SecureString"
+  value = var.whatsapp_app_secret
+}
+
 resource "aws_ssm_parameter" "whatsapp_test_access_token" {
   name  = "/${var.project}/whatsapp_test_access_token"
   type  = "SecureString"

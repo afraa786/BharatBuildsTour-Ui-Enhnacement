@@ -103,6 +103,11 @@ variable "whatsapp_biz_verify_token" {
   sensitive = true
 }
 
+variable "whatsapp_app_secret" {
+  type      = string
+  sensitive = true
+}
+
 variable "whatsapp_test_phone_number_id" {
   type      = string
   default   = ""
