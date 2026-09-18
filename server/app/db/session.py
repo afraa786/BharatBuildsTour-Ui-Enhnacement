@@ -30,13 +30,24 @@ def get_sessionmaker() -> sessionmaker[Session]:
     return sessionmaker(bind=get_engine(), autoflush=False, expire_on_commit=False)
 
 
-@contextmanager
-def transaction_session() -> Iterator[Session]:
-    """Commit on success, roll back on failure, and always close the session."""
-    with get_sessionmaker().begin() as session:
+def get_db() -> Generator[Session, None, None]:
+    """Plain request-scoped session. Callers commit explicitly.
+
+    Handlers that need several commits within one request (e.g. the
+    WhatsApp webhook: dedup-log commit, business-logic commit, outbound-log
+    commit) require this -- a `Session.begin()`-style auto-commit-on-success
+    wrapper cannot support more than one commit per request.
+    """
+    with get_sessionmaker()() as session:
         yield session
 
 
-def get_db() -> Generator[Session, None, None]:
-    with transaction_session() as session:
+@contextmanager
+def transaction_session() -> Iterator[Session]:
+    """Commit on success, roll back on failure, and always close the session.
+
+    For single-shot scripts (e.g. seeding) that only need one commit.
+    FastAPI request handlers should use `get_db` instead.
+    """
+    with get_sessionmaker().begin() as session:
         yield session

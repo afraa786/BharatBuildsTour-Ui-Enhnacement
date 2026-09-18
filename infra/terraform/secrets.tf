@@ -30,3 +30,9 @@ resource "aws_ssm_parameter" "whatsapp_test_verify_token" {
   type  = "SecureString"
   value = var.whatsapp_test_verify_token == "" ? "unset" : var.whatsapp_test_verify_token
 }
+
+resource "aws_ssm_parameter" "openai_api_key" {
+  name  = "/${var.project}/openai_api_key"
+  type  = "SecureString"
+  value = var.openai_api_key == "" ? "unset" : var.openai_api_key
+}

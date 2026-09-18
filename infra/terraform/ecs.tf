@@ -40,6 +40,7 @@ resource "aws_iam_role_policy" "execution_ssm" {
         aws_ssm_parameter.whatsapp_biz_verify_token.arn,
         aws_ssm_parameter.whatsapp_test_access_token.arn,
         aws_ssm_parameter.whatsapp_test_verify_token.arn,
+        aws_ssm_parameter.openai_api_key.arn,
       ]
     }]
   })
@@ -80,6 +81,7 @@ locals {
     { name = "WHATSAPP_BIZ_VERIFY_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_biz_verify_token.arn },
     { name = "WHATSAPP_TEST_ACCESS_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_test_access_token.arn },
     { name = "WHATSAPP_TEST_VERIFY_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_test_verify_token.arn },
+    { name = "OPENAI_API_KEY", valueFrom = aws_ssm_parameter.openai_api_key.arn },
   ]
 }
 

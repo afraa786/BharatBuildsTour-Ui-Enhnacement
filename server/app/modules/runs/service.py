@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.modules.runs import mock_desks
 from app.modules.runs.intent_router import ActorType, IntentType, route_message
 from app.modules.runs.models import Run
+from app.modules.runs.phrasing import manager_reply, phrase
 from app.modules.runs.repository import (
     add_event,
     create_approval,
@@ -75,7 +76,7 @@ def _clarification_text(unresolved: list[dict]) -> str:
             lines.append(
                 f'- "{requested}" not in our catalogue, could you clarify or spell it differently?'
             )
-    return "\n".join(lines)
+    return phrase("\n".join(lines))
 
 
 def _quote_text(run: Run, snapshot: dict) -> str:
@@ -92,7 +93,7 @@ def _quote_text(run: Run, snapshot: dict) -> str:
     lines.append(f"GST: ₹{snapshot['tax']}")
     lines.append(f"Total: ₹{snapshot['total']}")
     lines.append('Reply "accept" to proceed to payment, or tell us what to change.')
-    return "\n".join(lines)
+    return phrase("\n".join(lines))
 
 
 def _admin_approval_prompt(run: Run, snapshot: dict) -> str:
@@ -152,7 +153,9 @@ def _run_pipeline(db: Session, run: Run, text_body: str) -> list[OutboundMessage
         outbound.append(
             OutboundMessage(
                 run.buyer_wa_id,
-                "Thanks! Your request needs a quick check from our team, we'll confirm shortly.",
+                phrase(
+                    "Thanks! Your request needs a quick check from our team, we'll confirm shortly."
+                ),
             )
         )
         for admin_wa_id in settings.admin_wa_ids:
@@ -170,12 +173,12 @@ def _payment_link_text(run: Run) -> str:
     payment_id = run.payment_id or f"pay_{run.run_id.split('-')[1]}"
     total = run.quote_snapshot["total"] if run.quote_snapshot else "0.00"
     link = f"https://pay.stockaware.test/{payment_id}"
-    return f"Complete payment here (mock link): {link} for ₹{total}"
+    return phrase(f"Complete payment here (mock link): {link} for ₹{total}")
 
 
 def _invoice_text(run: Run) -> str:
     invoice_id = run.invoice_id or f"INV-{run.run_id.split('-')[1]}"
-    return (
+    return phrase(
         f"Your invoice {invoice_id} is ready. Reply if you want it sent again by email or WhatsApp."
     )
 
@@ -202,24 +205,46 @@ def _vendor_update_text(intent: IntentType, vendor_wa_id: str) -> str:
     return f"Vendor update from {vendor_wa_id}: new supplier message received."
 
 
+def _buyer_help_text(intent: IntentType) -> str:
+    if intent is IntentType.GREETING:
+        return "Hi! Send the item name and quantity, for example: 20 rolls 1.5 sq mm wire."
+    if intent is IntentType.CATALOGUE_QUERY:
+        return (
+            "We can help with electrical and building supplies. Send an item name with quantity "
+            "and I'll check availability and pricing."
+        )
+    return "Please send the item name and quantity you need, for example: 20 rolls 1.5 sq mm wire."
+
+
 def process_buyer_message(db: Session, buyer_wa_id: str, text_body: str) -> list[OutboundMessage]:
     run = get_open_run_for_buyer(db, buyer_wa_id)
+    decision = route_message(
+        text_body,
+        actor_hint=ActorType.BUYER,
+        current_status=run.status if run else None,
+        wa_id=buyer_wa_id,
+    )
 
     if run is None:
+        if decision.intent not in {IntentType.REQUEST_ORDER, IntentType.REQUEST_QUOTE}:
+            return [OutboundMessage(buyer_wa_id, _buyer_help_text(decision.intent))]
         run = create_run(db, buyer_wa_id, buyer_name=None, raw_text=text_body)
         add_event(db, run, "Manager", "Run received from WhatsApp", {"text": text_body})
         _transition(db, run, RunStatus.NORMALIZING, "Manager", "Normalizing buyer request")
         return _run_pipeline(db, run, text_body)
 
     current = RunStatus(run.status)
-    decision = route_message(
-        text_body,
-        actor_hint=ActorType.BUYER,
-        current_status=current.value,
-        wa_id=buyer_wa_id,
-    )
 
     if current == RunStatus.WAITING_FOR_CLARIFICATION:
+        if decision.intent in {IntentType.GREETING, IntentType.CATALOGUE_QUERY}:
+            add_event(
+                db,
+                run,
+                "Manager",
+                "Answered side question while waiting for clarification",
+                {"text": text_body, "intent": decision.intent.value},
+            )
+            return [OutboundMessage(buyer_wa_id, _buyer_help_text(decision.intent))]
         run.raw_text = f"{run.raw_text} {text_body}"
         _transition(db, run, RunStatus.NORMALIZING, "Manager", "Received clarification")
         return _run_pipeline(db, run, run.raw_text)
@@ -309,7 +334,9 @@ def process_buyer_message(db: Session, buyer_wa_id: str, text_body: str) -> list
     return [
         OutboundMessage(
             buyer_wa_id,
-            f"Your request {run.run_id} is currently {current.value}. We'll update you soon.",
+            phrase(
+                f"Your request {run.run_id} is currently {current.value}. We'll update you soon."
+            ),
         )
     ]
 
@@ -502,7 +529,7 @@ def process_admin_message(
             )
         ]
 
-    return [OutboundMessage(admin_wa_id, HELP_TEXT)]
+    return [OutboundMessage(admin_wa_id, manager_reply(stripped, fallback=HELP_TEXT))]
 
 
 def process_vendor_message(

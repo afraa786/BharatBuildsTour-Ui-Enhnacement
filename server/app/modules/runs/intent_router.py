@@ -18,6 +18,8 @@ class ActorType(StrEnum):
 
 
 class IntentType(StrEnum):
+    GREETING = "greeting"
+    CATALOGUE_QUERY = "catalogue_query"
     REQUEST_QUOTE = "request_quote"
     REQUEST_ORDER = "request_order"
     CLARIFICATION_REPLY = "clarification_reply"
@@ -147,6 +149,28 @@ PHRASE_CATALOG: dict[ActorType, dict[IntentType, tuple[str, ...]]] = {
         ),
     },
     ActorType.BUYER: {
+        IntentType.GREETING: (
+            "hi",
+            "hii",
+            "hiii",
+            "hello",
+            "hey",
+            "namaste",
+            "नमस्ते",
+            "नमस्कार",
+        ),
+        IntentType.CATALOGUE_QUERY: (
+            "what do you sell",
+            "what you sell",
+            "catalogue",
+            "catalog",
+            "product list",
+            "items list",
+            "send catalogue",
+            "send catalog",
+            "आप क्या बेचते",
+            "क्या मिलता",
+        ),
         IntentType.REQUEST_QUOTE: (
             "quote",
             "quotation",
@@ -356,6 +380,8 @@ INTENT_PRIORITY: dict[ActorType, tuple[IntentType, ...]] = {
         IntentType.REJECT_QUOTE,
     ),
     ActorType.BUYER: (
+        IntentType.CATALOGUE_QUERY,
+        IntentType.GREETING,
         IntentType.REQUEST_PAYMENT_LINK,
         IntentType.PAYMENT_CLAIM,
         IntentType.REQUEST_INVOICE,
@@ -478,6 +504,11 @@ def _apply_state_guards(state: RouteState) -> RouteState:
         return {"allowed_intent": base_intent.value, "requires_exact_run_id": False}
 
     if current_status == RunStatus.WAITING_FOR_CLARIFICATION.value and text:
+        if base_intent in {IntentType.GREETING, IntentType.CATALOGUE_QUERY}:
+            return {
+                "allowed_intent": base_intent.value,
+                "requires_exact_run_id": False,
+            }
         return {
             "allowed_intent": IntentType.CLARIFICATION_REPLY.value,
             "requires_exact_run_id": False,

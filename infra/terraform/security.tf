@@ -54,11 +54,19 @@ resource "aws_security_group" "rds" {
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description     = "From ECS service only"
+    description     = "From ECS service"
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.ecs_service.id]
+  }
+
+  ingress {
+    description = "Local admin access"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip_cidr]
   }
 
   egress {

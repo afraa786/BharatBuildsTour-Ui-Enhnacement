@@ -8,6 +8,11 @@ variable "project" {
   default = "stockaware"
 }
 
+variable "my_ip_cidr" {
+  description = "Your public IP/32, allowed direct Postgres access for local admin/debugging."
+  type        = string
+}
+
 variable "container_port" {
   type    = number
   default = 8000
@@ -96,4 +101,10 @@ variable "admin_whatsapp_numbers" {
 variable "cors_origins" {
   type    = string
   default = "[\"http://localhost:3000\"]"
+}
+
+variable "openai_api_key" {
+  type      = string
+  default   = ""
+  sensitive = true
 }

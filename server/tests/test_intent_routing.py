@@ -1,5 +1,6 @@
 import pytest
 
+from app.modules.runs import service as runs_service
 from app.modules.runs.intent_router import ActorType, IntentType, route_message
 from app.modules.runs.service import process_admin_message, process_vendor_message
 from app.modules.runs.state_machine import RunStatus
@@ -201,3 +202,39 @@ def test_buyer_stock_question_does_not_become_vendor_update() -> None:
     )
     assert decision.actor is ActorType.BUYER
     assert decision.intent is IntentType.REQUEST_ORDER
+
+
+def test_greeting_and_catalogue_question_do_not_route_as_order() -> None:
+    greeting = route_message(text="hiii", actor_hint=ActorType.BUYER)
+    catalogue = route_message(text="what do you sell", actor_hint=ActorType.BUYER)
+
+    assert greeting.intent is IntentType.GREETING
+    assert catalogue.intent is IntentType.CATALOGUE_QUERY
+
+
+def test_catalogue_question_does_not_become_clarification_reply() -> None:
+    decision = route_message(
+        text="what do you sell",
+        actor_hint=ActorType.BUYER,
+        current_status=RunStatus.WAITING_FOR_CLARIFICATION.value,
+    )
+
+    assert decision.intent is IntentType.CATALOGUE_QUERY
+
+
+def test_new_buyer_greeting_does_not_create_rfq_run(monkeypatch) -> None:
+    created = False
+
+    def _create_run(*args, **kwargs):  # noqa: ANN002, ANN003
+        nonlocal created
+        created = True
+        raise AssertionError("greeting should not create a run")
+
+    monkeypatch.setattr(runs_service, "get_open_run_for_buyer", lambda *args, **kwargs: None)
+    monkeypatch.setattr(runs_service, "create_run", _create_run)
+
+    outbound = runs_service.process_buyer_message(db=None, buyer_wa_id="buyer", text_body="hiii")
+
+    assert created is False
+    assert len(outbound) == 1
+    assert "item name and quantity" in outbound[0].text
