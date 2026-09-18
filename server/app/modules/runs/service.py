@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.modules.runs import mock_desks
 from app.modules.runs.intent_router import ActorType, IntentType, route_message
+from app.modules.runs.manager_graph import manager_chat
 from app.modules.runs.models import Run
-from app.modules.runs.phrasing import manager_reply, phrase
+from app.modules.runs.phrasing import phrase
 from app.modules.runs.repository import (
     add_event,
     create_approval,
@@ -465,6 +466,7 @@ def process_admin_message(
     db: Session | None,
     admin_wa_id: str,
     text_body: str,
+    phone_number_id: str | None = None,
 ) -> list[OutboundMessage]:
     stripped = text_body.strip()
     decision = route_message(stripped, actor_hint=ActorType.ADMIN, wa_id=admin_wa_id)
@@ -529,7 +531,14 @@ def process_admin_message(
             )
         ]
 
-    return [OutboundMessage(admin_wa_id, manager_reply(stripped, fallback=HELP_TEXT))]
+    return [
+        OutboundMessage(
+            admin_wa_id,
+            manager_chat(
+                db, admin_wa_id, stripped, fallback=HELP_TEXT, phone_number_id=phone_number_id
+            ),
+        )
+    ]
 
 
 def process_vendor_message(

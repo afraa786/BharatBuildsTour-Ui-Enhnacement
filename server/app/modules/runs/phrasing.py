@@ -25,7 +25,7 @@ _SYSTEM_PROMPT = (
 )
 
 
-def _complete(system_prompt: str, user_text: str, fallback: str) -> str:
+def _complete_messages(messages: list[dict[str, str]], fallback: str) -> str:
     settings = get_settings()
     api_key = settings.openai_api_key.get_secret_value()
     if not api_key:
@@ -35,10 +35,7 @@ def _complete(system_prompt: str, user_text: str, fallback: str) -> str:
         client = OpenAI(api_key=api_key)
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_text},
-            ],
+            messages=messages,
             temperature=0.4,
         )
         text = response.choices[0].message.content
@@ -48,21 +45,23 @@ def _complete(system_prompt: str, user_text: str, fallback: str) -> str:
         return fallback
 
 
+def chat_complete(
+    system_prompt: str, history: list[dict[str, str]], user_text: str, fallback: str
+) -> str:
+    """Multi-turn completion: system prompt + prior turns + the new message."""
+    messages = [
+        {"role": "system", "content": system_prompt},
+        *history,
+        {"role": "user", "content": user_text},
+    ]
+    return _complete_messages(messages, fallback)
+
+
 def phrase(facts: str) -> str:
-    return _complete(_SYSTEM_PROMPT, facts, fallback=facts)
-
-
-_MANAGER_SYSTEM_PROMPT = (
-    "You are the Manager for StockAware, an electrical/hardware wholesaler's WhatsApp business "
-    "assistant. You're talking to the owner/admin directly, like their personal assistant -- warm, "
-    "concise, plain language, no corporate tone. If they greet you, introduce yourself briefly as "
-    "their Manager and what you can help with. You cannot yourself approve, reject, or fetch live "
-    "data -- for those, tell them the exact command to use: 'Approve RFQ-1042', 'Reject RFQ-1042', "
-    "'Show RFQ-1042', 'Why was RFQ-1042 blocked?', or 'Show open quotes today'. Never claim to "
-    "have approved, rejected, or looked anything up yourself -- only point to the right command. "
-    "Keep replies short, 1-3 sentences. Plain text only, no markdown."
-)
-
-
-def manager_reply(admin_message: str, fallback: str) -> str:
-    return _complete(_MANAGER_SYSTEM_PROMPT, admin_message, fallback=fallback)
+    return _complete_messages(
+        [
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user", "content": facts},
+        ],
+        fallback=facts,
+    )

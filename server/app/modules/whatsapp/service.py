@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.modules.runs import service as runs_service
 from app.modules.runs.intent_router import ActorType, route_message
-from app.modules.whatsapp import client
+from app.modules.whatsapp import audio, client
 from app.modules.whatsapp.models import WhatsAppMessage
 
 TEXTUAL_MESSAGE_TYPES = {
@@ -200,6 +200,21 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
             continue
         db.commit()
 
+        if message["type"] == "audio" and message.get("media_id"):
+            creds = settings.whatsapp_number_credentials.get(message["phone_number_id"])
+            if creds:
+                _, access_token = creds
+                downloaded = await audio.download_media(message["media_id"], access_token)
+                if downloaded:
+                    audio_bytes, mime_type = downloaded
+                    transcript = audio.transcribe(audio_bytes, mime_type)
+                    if transcript:
+                        message["text"] = transcript
+                        message["type"] = "text"
+                        message["requested_output_mode"] = (
+                            message["requested_output_mode"] or "audio"
+                        )
+
         decision = route_message(
             message["text"],
             actor_hint=(
@@ -221,7 +236,9 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
                 )
             ]
         elif decision.actor is ActorType.ADMIN:
-            outbound = runs_service.process_admin_message(db, message["wa_id"], message["text"])
+            outbound = runs_service.process_admin_message(
+                db, message["wa_id"], message["text"], phone_number_id=message["phone_number_id"]
+            )
         elif decision.actor is ActorType.VENDOR:
             outbound = runs_service.process_vendor_message(db, message["wa_id"], message["text"])
         else:
@@ -229,22 +246,43 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
         db.commit()
 
         for out_message in outbound:
-            await client.send_message(
-                to=out_message.to,
-                phone_number_id=message["phone_number_id"],
-                message_type=getattr(out_message, "message_type", "text"),
-                text=getattr(out_message, "text", None),
-                media_id=getattr(out_message, "media_id", None),
-                link=getattr(out_message, "link", None),
-                caption=getattr(out_message, "caption", None),
-                filename=getattr(out_message, "filename", None),
-                latitude=getattr(out_message, "latitude", None),
-                longitude=getattr(out_message, "longitude", None),
-                name=getattr(out_message, "name", None),
-                address=getattr(out_message, "address", None),
-                contacts=getattr(out_message, "contacts", None),
-                interactive=getattr(out_message, "interactive", None),
-            )
+            send_kwargs = {
+                "to": out_message.to,
+                "phone_number_id": message["phone_number_id"],
+                "message_type": getattr(out_message, "message_type", "text"),
+                "text": getattr(out_message, "text", None),
+                "media_id": getattr(out_message, "media_id", None),
+                "link": getattr(out_message, "link", None),
+                "caption": getattr(out_message, "caption", None),
+                "filename": getattr(out_message, "filename", None),
+                "latitude": getattr(out_message, "latitude", None),
+                "longitude": getattr(out_message, "longitude", None),
+                "name": getattr(out_message, "name", None),
+                "address": getattr(out_message, "address", None),
+                "contacts": getattr(out_message, "contacts", None),
+                "interactive": getattr(out_message, "interactive", None),
+            }
+
+            sent_as_audio = False
+            if (
+                message.get("requested_output_mode") == "audio"
+                and send_kwargs["message_type"] == "text"
+                and send_kwargs["text"]
+            ):
+                creds = settings.whatsapp_number_credentials.get(message["phone_number_id"])
+                if creds:
+                    _, access_token = creds
+                    audio_bytes = audio.synthesize(send_kwargs["text"])
+                    if audio_bytes:
+                        uploaded_media_id = await audio.upload_media(
+                            audio_bytes, "audio/mpeg", message["phone_number_id"], access_token
+                        )
+                        if uploaded_media_id:
+                            send_kwargs["message_type"] = "audio"
+                            send_kwargs["media_id"] = uploaded_media_id
+                            sent_as_audio = True
+
+            await client.send_message(**send_kwargs)
             _log_message(
                 db,
                 provider_message_id=f"out-{uuid4()}",
@@ -253,7 +291,8 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
                 phone_number_id=message["phone_number_id"],
                 payload={
                     "text": out_message.text,
-                    "message_type": getattr(out_message, "message_type", "text"),
+                    "message_type": send_kwargs["message_type"],
+                    "sent_as_audio": sent_as_audio,
                     "actor": decision.actor.value,
                     "intent": decision.intent.value,
                     "actor_source": decision.actor_source,
