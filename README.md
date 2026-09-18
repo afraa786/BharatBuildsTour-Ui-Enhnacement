@@ -7,9 +7,27 @@ WhatsApp-first quote-to-cash system for wholesalers. The repository now contains
 | `server/` | FastAPI, catalog, inventory, pricing, payment, invoice, PostgreSQL | Fareed |
 | `client/` | Next.js onboarding, control room, and buyer pages | Yunus |
 | `docs/` | Architecture, contracts, implementation checklist | Shared |
+| `fixtures/` | Demo catalog, RFQ workflows, and vendor-update examples | Amir |
 | `compose.yaml` | Local PostgreSQL, migration runner, FastAPI | Shared |
 
 Read [the build plan](docs/build-plan.md) before adding endpoints. It explains setup, ownership, schema decisions, API contracts, and the exact build order.
+
+## Demo and QA assets
+
+Amir's shared demo pack is ready in [fixtures/](fixtures/README.md). Use
+[manager operations](docs/manager-operations.md) for alert/reminder copy,
+[the QA checklist](docs/qa-checklist.md) for acceptance coverage, and
+[the demo script](docs/demo-script.md) for the end-to-end presentation.
+
+## Working MVP
+
+The control room in `client/` is now a responsive, interactive demo. The FastAPI
+service also exposes a deterministic demo workflow under `/demo`: `POST
+/demo/webhook/whatsapp`, `GET /demo/runs`, `POST /demo/runs/{run_id}/accept`,
+`POST /demo/payments/create-link`, `POST /demo/payments/{payment_id}/confirm`,
+and `POST /demo/invoice/generate`.
+The `/demo` payment confirmation endpoint is strictly for local demonstrations;
+production payment state must still come from a verified Razorpay webhook.
 
 ## Quick start
 

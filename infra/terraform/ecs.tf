@@ -90,7 +90,7 @@ resource "aws_ecs_task_definition" "server" {
   cpu                      = var.task_cpu
   memory                   = var.task_memory
   execution_role_arn       = aws_iam_role.execution.arn
-  task_role_arn             = aws_iam_role.task.arn
+  task_role_arn            = aws_iam_role.task.arn
 
   container_definitions = jsonencode([{
     name      = "server"
@@ -122,13 +122,13 @@ resource "aws_ecs_task_definition" "migrate" {
   cpu                      = var.task_cpu
   memory                   = var.task_memory
   execution_role_arn       = aws_iam_role.execution.arn
-  task_role_arn             = aws_iam_role.task.arn
+  task_role_arn            = aws_iam_role.task.arn
 
   container_definitions = jsonencode([{
-    name      = "migrate"
-    image     = local.server_image
-    essential = true
-    command   = ["alembic", "upgrade", "head"]
+    name        = "migrate"
+    image       = local.server_image
+    essential   = true
+    command     = ["alembic", "upgrade", "head"]
     environment = local.common_environment
     secrets     = local.common_secrets
     logConfiguration = {
@@ -157,8 +157,8 @@ resource "aws_ecs_service" "server" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.app.arn
-    container_name    = "server"
-    container_port    = var.container_port
+    container_name   = "server"
+    container_port   = var.container_port
   }
 
   depends_on = [aws_lb_listener.http]
