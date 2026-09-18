@@ -1,0 +1,28 @@
+[
+  {
+    "id": "vendor-price-revision-001",
+    "channel": "email",
+    "vendor": "Lumina Electricals Pvt Ltd",
+    "received_at": "2026-09-18T08:30:00Z",
+    "subject": "Revised LED price list effective 20 September",
+    "raw_summary": "9W LED bulb distributor price increases by Rs 3 per unit from 20 September. Attached sheet contains revised rates.",
+    "normalized_event": {"type": "VENDOR_PRICE_REVISION", "affected_skus": ["LED-9W", "LED-12W"], "effective_date": "2026-09-20", "severity": "HIGH", "requires_owner_review": true}
+  },
+  {
+    "id": "vendor-stock-shortage-001",
+    "channel": "whatsapp",
+    "vendor": "SecureSwitch Distributors",
+    "received_at": "2026-09-18T09:15:00Z",
+    "raw_summary": "40A RCCB dispatch delayed by five days due to factory shortage. Next dispatch expected 23 September.",
+    "normalized_event": {"type": "VENDOR_STOCK_SHORTAGE", "affected_skus": ["RCCB-40A-DP"], "expected_date": "2026-09-23", "severity": "HIGH", "requires_owner_review": true}
+  },
+  {
+    "id": "vendor-stock-arrival-001",
+    "channel": "email",
+    "vendor": "Prime Cables",
+    "received_at": "2026-09-18T10:00:00Z",
+    "subject": "Wire stock dispatched",
+    "raw_summary": "500 metres each of 1.5 sq red and black wire dispatched today; arrival expected tomorrow.",
+    "normalized_event": {"type": "VENDOR_STOCK_ARRIVAL", "affected_skus": ["WIRE-1.5SQ-RED", "WIRE-1.5SQ-BLACK"], "expected_date": "2026-09-19", "severity": "NORMAL", "requires_owner_review": false}
+  }
+]

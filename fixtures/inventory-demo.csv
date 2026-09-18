@@ -1,0 +1,13 @@
+business_id,sku,name,unit,pack_size,cost_paise,base_price_paise,gst_rate,on_hand,reserved,reorder_threshold,aliases,substitute_sku
+BIZ-DEMO-001,MCB-32A-SP,32A SP MCB C Curve,each,1,18000,26000,18,42,4,12,32 amp mcb|32a mcb|single pole 32a mcb|c curve 32a,MCB-32A-DP
+BIZ-DEMO-001,MCB-32A-DP,32A DP MCB C Curve,each,1,34000,46000,18,18,2,8,32 amp dp mcb|32a double pole mcb|32a dp,MCB-32A-SP
+BIZ-DEMO-001,MCB-16A-SP,16A SP MCB C Curve,each,1,12500,19000,18,64,6,16,16 amp mcb|16a mcb|single pole 16a,
+BIZ-DEMO-001,RCCB-40A-DP,40A DP RCCB 30mA,each,1,82000,112000,18,9,1,5,40a rccb|40 amp rccb|rccb 40a|40a elcb,
+BIZ-DEMO-001,SWITCH-6A-1W,6A 1-Way Modular Switch,each,20,2800,4200,18,340,40,100,6a switch|6 amp switch|one way switch|1 way switch,
+BIZ-DEMO-001,SOCKET-6A-3P,6A 3-Pin Modular Socket,each,20,3600,5600,18,210,20,60,6a socket|3 pin socket|6 amp 3 pin socket,
+BIZ-DEMO-001,CONDUIT-20MM,20mm PVC Conduit Pipe,metre,3,1800,2900,18,71,0,80,20mm conduit|20 mm pipe|pvc conduit 20mm|conduit pipe,
+BIZ-DEMO-001,CONDUIT-25MM,25mm PVC Conduit Pipe,metre,3,2600,3900,18,150,15,75,25mm conduit|25 mm pipe|pvc conduit 25mm,CONDUIT-20MM
+BIZ-DEMO-001,WIRE-1.5SQ-RED,1.5 sq mm FR Copper Wire Red,metre,90,1450,2050,18,540,90,180,1.5 sq wire red|1.5mm red wire|red wire 1.5 sq|1.5 sqmm cable red,WIRE-1.5SQ-BLACK
+BIZ-DEMO-001,WIRE-1.5SQ-BLACK,1.5 sq mm FR Copper Wire Black,metre,90,1450,2050,18,450,45,180,1.5 sq wire black|1.5mm black wire|black wire 1.5 sq,WIRE-1.5SQ-RED
+BIZ-DEMO-001,LED-9W,9W LED Bulb Cool Day Light,each,10,4800,7500,12,23,3,30,9w bulb|9 watt led bulb|9w led|led bulb 9w,LED-12W
+BIZ-DEMO-001,LED-12W,12W LED Bulb Cool Day Light,each,10,6200,9300,12,86,6,30,12w bulb|12 watt led bulb|12w led|led bulb 12w,LED-9W

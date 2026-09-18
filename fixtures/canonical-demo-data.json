@@ -1,0 +1,161 @@
+{
+  "schema_version": "amir-canonical-demo-v1",
+  "business": {
+    "id": "BIZ-DEMO-001",
+    "name": "Aarav Electricals & Hardware",
+    "currency": "INR",
+    "timezone": "Asia/Kolkata",
+    "source": "Amir truth table; demo-only and not production policy"
+  },
+  "products": [
+    {
+      "sku": "MCB32",
+      "name": "32A MCB",
+      "aliases": ["32 amp MCB"],
+      "unit": "each",
+      "price_inr": 450,
+      "price_paise": 45000,
+      "stock_quantity": 8,
+      "reorder_threshold": 10,
+      "status": "LOW",
+      "demo_scenario_id": "SCN-LOW-STOCK-RFQ",
+      "expected_alert": "LOW_STOCK"
+    },
+    {
+      "sku": "MCB16",
+      "name": "16A MCB",
+      "aliases": ["16 amp MCB"],
+      "unit": "each",
+      "price_inr": 280,
+      "price_paise": 28000,
+      "stock_quantity": 50,
+      "reorder_threshold": 10,
+      "status": "OK",
+      "demo_scenario_id": "SCN-NORMAL-RFQ-MCB16",
+      "expected_alert": null
+    },
+    {
+      "sku": "WIRE25",
+      "name": "2.5mm Wire",
+      "aliases": ["2.5 sq mm wire"],
+      "unit": "metre",
+      "price_inr": 1850,
+      "price_paise": 185000,
+      "stock_quantity": 0,
+      "reorder_threshold": 1,
+      "status": "OUT",
+      "demo_scenario_id": "SCN-STOCK-SHORTAGE",
+      "expected_alert": "STOCK_SHORTAGE"
+    },
+    {
+      "sku": "LED9",
+      "name": "9W LED",
+      "aliases": ["9 watt bulb"],
+      "unit": "each",
+      "price_inr": 90,
+      "price_paise": 9000,
+      "stock_quantity": 100,
+      "reorder_threshold": 20,
+      "status": "OK",
+      "demo_scenario_id": "SCN-NORMAL-RFQ-LED9",
+      "expected_alert": null
+    }
+  ],
+  "customers": [
+    {
+      "id": "BUY-DEMO-001",
+      "name": "Acme Electrical Contractors",
+      "phone": "+919811111111"
+    },
+    {
+      "id": "BUY-DEMO-002",
+      "name": "Shree Buildmart",
+      "phone": "+919822222222"
+    }
+  ],
+  "rfqs": [
+    {
+      "id": "RFQ-DEMO-001",
+      "scenario_id": "SCN-NORMAL-RFQ-MCB16",
+      "customer_id": "BUY-DEMO-001",
+      "source_message_id": "wamid.amir.demo.001",
+      "lines": [{"sku": "MCB16", "quantity": 10, "unit": "each"}],
+      "expected_status": "QUOTED"
+    },
+    {
+      "id": "RFQ-DEMO-002",
+      "scenario_id": "SCN-LOW-STOCK-RFQ",
+      "customer_id": "BUY-DEMO-001",
+      "source_message_id": "wamid.amir.demo.002",
+      "lines": [{"sku": "MCB32", "quantity": 4, "unit": "each"}],
+      "expected_status": "QUOTED",
+      "expected_alert": "LOW_STOCK"
+    },
+    {
+      "id": "RFQ-DEMO-003",
+      "scenario_id": "SCN-STOCK-SHORTAGE",
+      "customer_id": "BUY-DEMO-002",
+      "source_message_id": "wamid.amir.demo.003",
+      "lines": [{"sku": "WIRE25", "quantity": 25, "unit": "metre"}],
+      "expected_status": "NEEDS_OWNER_DECISION",
+      "expected_alert": "STOCK_SHORTAGE"
+    },
+    {
+      "id": "RFQ-DEMO-004",
+      "scenario_id": "SCN-UNKNOWN-SKU",
+      "customer_id": "BUY-DEMO-002",
+      "source_message_id": "wamid.amir.demo.004",
+      "lines": [{"requested_name": "63A smart breaker", "quantity": 10, "unit": "each"}],
+      "expected_status": "NEEDS_CLARIFICATION"
+    },
+    {
+      "id": "RFQ-DEMO-005",
+      "scenario_id": "SCN-DUPLICATE-RFQ",
+      "customer_id": "BUY-DEMO-001",
+      "source_message_id": "wamid.amir.demo.001",
+      "duplicate_of": "RFQ-DEMO-001",
+      "expected_status": "DUPLICATE"
+    }
+  ],
+  "quotes": [
+    {"id": "QT-DEMO-001", "rfq_id": "RFQ-DEMO-001", "status": "SENT", "version": 1, "total_paise": 280000, "expires_at": "2026-09-20T23:59:59+05:30"},
+    {"id": "QT-DEMO-002", "rfq_id": "RFQ-DEMO-002", "status": "SENT", "version": 1, "total_paise": 180000, "expires_at": "2026-09-20T23:59:59+05:30"},
+    {"id": "QT-DEMO-003", "rfq_id": "RFQ-DEMO-003", "status": "DRAFT", "version": 1, "total_paise": 0, "expires_at": "2026-09-20T23:59:59+05:30"},
+    {"id": "QT-DEMO-004", "rfq_id": "RFQ-DEMO-001", "status": "ACCEPTED", "version": 1, "total_paise": 280000, "expires_at": "2026-09-20T23:59:59+05:30"},
+    {"id": "QT-DEMO-005", "rfq_id": "RFQ-DEMO-001", "status": "EXPIRED", "version": 1, "total_paise": 280000, "expires_at": "2026-09-17T23:59:59+05:30"}
+  ],
+  "payments": [
+    {"id": "PAY-DEMO-PENDING", "scenario_id": "SCN-PAYMENT-PENDING", "quote_id": "QT-DEMO-002", "status": "PENDING", "amount_paise": 180000, "currency": "INR"},
+    {"id": "PAY-DEMO-FAILED", "scenario_id": "SCN-PAYMENT-FAILED", "quote_id": "QT-DEMO-001", "status": "FAILED", "amount_paise": 280000, "currency": "INR"},
+    {"id": "PAY-DEMO-CONFIRMED", "scenario_id": "SCN-PAYMENT-CONFIRMED", "quote_id": "QT-DEMO-004", "status": "PAID", "amount_paise": 280000, "currency": "INR"}
+  ],
+  "invoices": [
+    {"id": "INV-DEMO-001", "scenario_id": "SCN-INVOICE-GENERATED", "payment_id": "PAY-DEMO-CONFIRMED", "quote_id": "QT-DEMO-004", "status": "GENERATED", "number": "SA/2026/0001", "total_paise": 280000, "currency": "INR"}
+  ],
+  "vendors": [
+    {"id": "VENDOR-DEMO-001", "name": "Metro Switchgear", "channel": "email"},
+    {"id": "VENDOR-DEMO-002", "name": "Prime Cables", "channel": "whatsapp"}
+  ],
+  "vendor_events": [
+    {"id": "VEND-EVT-001", "scenario_id": "SCN-VENDOR-PRICE-REVISION", "vendor_id": "VENDOR-DEMO-001", "type": "VENDOR_PRICE_REVISION", "affected_skus": ["MCB32"], "message": "32A MCB price revised; review open quotes."},
+    {"id": "VEND-EVT-002", "scenario_id": "SCN-VENDOR-SHORTAGE", "vendor_id": "VENDOR-DEMO-002", "type": "VENDOR_STOCK_SHORTAGE", "affected_skus": ["WIRE25"], "message": "2.5mm wire shipment delayed; escalate the shortage."},
+    {"id": "VEND-EVT-003", "scenario_id": "SCN-VENDOR-STOCK-ARRIVAL", "vendor_id": "VENDOR-DEMO-002", "type": "VENDOR_STOCK_ARRIVAL", "affected_skus": ["WIRE25"], "message": "2.5mm wire arrival confirmed; recheck stock before promising buyers."}
+  ],
+  "scenarios": [
+    {"id": "SCN-NORMAL-RFQ-MCB16", "type": "NORMAL", "rfq_id": "RFQ-DEMO-001", "expected_outcome": "Quote can be prepared without an alert."},
+    {"id": "SCN-LOW-STOCK-RFQ", "type": "LOW_STOCK", "rfq_id": "RFQ-DEMO-002", "expected_outcome": "Quote is prepared and LOW_STOCK is shown to the owner."},
+    {"id": "SCN-STOCK-SHORTAGE", "type": "OUT_OF_STOCK", "rfq_id": "RFQ-DEMO-003", "expected_outcome": "No stock promise; show STOCK_SHORTAGE and request an owner decision."},
+    {"id": "SCN-UNKNOWN-SKU", "type": "UNKNOWN_SKU", "rfq_id": "RFQ-DEMO-004", "expected_outcome": "Ask for clarification; do not invent a SKU or price."},
+    {"id": "SCN-UNSAFE-PRICING", "type": "UNSAFE_PRICING", "quote_id": "QT-DEMO-002", "expected_outcome": "Route for approval before sending or accepting the quote."},
+    {"id": "SCN-DUPLICATE-RFQ", "type": "DUPLICATE_RFQ", "rfq_id": "RFQ-DEMO-005", "expected_outcome": "Return the original RFQ/run and do not create a second commercial action."},
+    {"id": "SCN-PAYMENT-PENDING", "type": "PAYMENT_PENDING", "payment_id": "PAY-DEMO-PENDING", "expected_outcome": "Owner sees a pending-payment reminder while the link is valid."},
+    {"id": "SCN-PAYMENT-FAILED", "type": "PAYMENT_FAILED", "payment_id": "PAY-DEMO-FAILED", "expected_outcome": "Keep the payment non-paid and ask before issuing a fresh link."},
+    {"id": "SCN-PAYMENT-CONFIRMED", "type": "PAYMENT_CONFIRMED", "payment_id": "PAY-DEMO-CONFIRMED", "expected_outcome": "Use verified payment evidence before invoicing."},
+    {"id": "SCN-INVOICE-GENERATED", "type": "INVOICE_GENERATED", "invoice_id": "INV-DEMO-001", "expected_outcome": "Generate one invoice for the confirmed payment and make retries idempotent."},
+    {"id": "SCN-VENDOR-PRICE-REVISION", "type": "VENDOR_PRICE_REVISION", "vendor_event_id": "VEND-EVT-001", "expected_outcome": "Flag affected open quotes for review."},
+    {"id": "SCN-VENDOR-SHORTAGE", "type": "VENDOR_SHORTAGE", "vendor_event_id": "VEND-EVT-002", "expected_outcome": "Escalate shortage and avoid promising unavailable stock."},
+    {"id": "SCN-VENDOR-STOCK-ARRIVAL", "type": "VENDOR_STOCK_ARRIVAL", "vendor_event_id": "VEND-EVT-003", "expected_outcome": "Record arrival and recheck inventory."},
+    {"id": "SCN-QUOTE-EXPIRING", "type": "QUOTE_EXPIRING", "quote_id": "QT-DEMO-005", "expected_outcome": "Remind the owner/buyer before expiry; expired quotes cannot create payment links."},
+    {"id": "SCN-CUSTOMER-FOLLOW-UP", "type": "CUSTOMER_FOLLOW_UP", "rfq_id": "RFQ-DEMO-002", "expected_outcome": "Create a follow-up reminder for the buyer after the low-stock response."}
+  ]
+}

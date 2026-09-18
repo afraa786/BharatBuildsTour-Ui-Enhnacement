@@ -38,3 +38,5 @@ artifacts/
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+
+aamir-work-readme.md
