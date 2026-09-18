@@ -1,0 +1,40 @@
+{
+  "_comment": "Normalization golden vectors for catalog candidates (SKU and Name).",
+  "vectors": [
+    {
+      "input": "  SKU-001  ",
+      "expected_normalized": "SKU-001",
+      "notes": "Leading and trailing whitespace is stripped."
+    },
+    {
+      "input": "sku-001",
+      "expected_normalized": "SKU-001",
+      "notes": "SKUs are normalized to uppercase (or names to lowercase, depending on implementation). Assume SKU uppercase."
+    },
+    {
+      "input": "Copper   Wire",
+      "expected_normalized": "copper wire",
+      "notes": "Repeated internal whitespace is collapsed to a single space, and names are lowercased."
+    },
+    {
+      "input": "Copper\tWire",
+      "expected_normalized": "copper wire",
+      "notes": "Tabs are treated as whitespace and collapsed."
+    },
+    {
+      "input": "Copper\u00A0Wire",
+      "expected_normalized": "copper wire",
+      "notes": "Unicode non-breaking space is treated as whitespace."
+    },
+    {
+      "input": "Copper-Wire",
+      "expected_normalized": "DEFERRED",
+      "notes": "Contract states 'harmless punctuation'. Specific punctuation rules are not frozen yet, marked as DEFERRED."
+    },
+    {
+      "input": "9w bulb",
+      "expected_normalized": "9w bulb",
+      "notes": "Standard casing for alias."
+    }
+  ]
+}

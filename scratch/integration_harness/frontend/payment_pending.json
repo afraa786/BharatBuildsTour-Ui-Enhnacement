@@ -1,0 +1,11 @@
+{
+  "payment_id": "pay_123",
+  "quote_id": "6b530cb4-3510-4b83-9152-d7182b9164d5",
+  "quote_version": 1,
+  "status": "PENDING",
+  "amount_paise": 28320,
+  "currency": "INR",
+  "provider_link_id": "plink_abc123",
+  "payment_url": "https://rzp.io/i/fakelink",
+  "expires_at": "2026-09-19T10:00:00Z"
+}

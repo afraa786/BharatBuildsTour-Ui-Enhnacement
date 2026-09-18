@@ -1,0 +1,33 @@
+{
+  "_comment": "Payment Outbox Atomicity specifications.",
+  "CRASH_STATES": {
+    "A_EVENT_INSERTED_PAYMENT_NOT_UPDATED": {
+      "has_event": true,
+      "payment_state": "PENDING",
+      "has_outbox": false,
+      "valid": false,
+      "reason": "Forbidden partial commit."
+    },
+    "B_PAYMENT_UPDATED_OUTBOX_ABSENT": {
+      "has_event": true,
+      "payment_state": "PAID",
+      "has_outbox": false,
+      "valid": false,
+      "reason": "Forbidden partial commit."
+    },
+    "C_OUTBOX_CREATED_EVENT_ABSENT": {
+      "has_event": false,
+      "payment_state": "PAID",
+      "has_outbox": true,
+      "valid": false,
+      "reason": "Forbidden partial commit."
+    }
+  },
+  "SUCCESSFUL_STATE": {
+    "has_event": true,
+    "payment_state": "PAID",
+    "has_outbox": true,
+    "valid": true,
+    "reason": "Correlated atomic logical transaction."
+  }
+}

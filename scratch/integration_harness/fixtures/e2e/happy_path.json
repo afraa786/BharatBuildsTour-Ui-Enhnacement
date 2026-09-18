@@ -1,0 +1,77 @@
+{
+  "_comment": "Canonical full E2E journey.",
+  "HAPPY_PATH": {
+    "run_id": "RFQ-E2E-1",
+    "business_id": "b-111",
+    "buyer_id": "buy-111",
+    "steps": [
+      {
+        "step": 1,
+        "action": "catalog.match",
+        "result_product_id": "prod-111"
+      },
+      {
+        "step": 2,
+        "action": "inventory.check",
+        "input_product_id": "prod-111",
+        "result_status": "AVAILABLE"
+      },
+      {
+        "step": 3,
+        "action": "quote.generate",
+        "input_product_id": "prod-111",
+        "result_quote_id": "q-111",
+        "result_version": 1,
+        "approval_required": true
+      },
+      {
+        "step": 4,
+        "action": "quote.approve",
+        "input_quote_id": "q-111",
+        "input_version": 1,
+        "result_approval_id": "app-111"
+      },
+      {
+        "step": 5,
+        "action": "quote.accept",
+        "input_quote_id": "q-111",
+        "input_version": 1,
+        "input_approval_id": "app-111",
+        "result_acceptance_id": "acc-111"
+      },
+      {
+        "step": 6,
+        "action": "payment.create_link",
+        "input_quote_id": "q-111",
+        "input_acceptance_id": "acc-111",
+        "result_payment_id": "pay-111",
+        "result_provider_link_id": "plink_111"
+      },
+      {
+        "step": 7,
+        "action": "webhook.receive",
+        "input_provider_link_id": "plink_111",
+        "result_status": "PAID"
+      },
+      {
+        "step": 8,
+        "action": "invoice.generate",
+        "input_payment_id": "pay-111",
+        "result_invoice_id": "inv-111",
+        "result_invoice_number": "INV-2026-000001",
+        "result_status": "PENDING_ARTIFACT"
+      },
+      {
+        "step": 9,
+        "action": "artifact.complete",
+        "input_invoice_id": "inv-111",
+        "result_status": "GENERATED"
+      }
+    ],
+    "correlation_check": {
+      "quote_id": "q-111",
+      "payment_id": "pay-111",
+      "invoice_id": "inv-111"
+    }
+  }
+}

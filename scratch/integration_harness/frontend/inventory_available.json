@@ -1,0 +1,9 @@
+{
+  "status": "AVAILABLE",
+  "product_id": "dcdb744a-0dc6-5e5a-b179-928ae8c6d9e7",
+  "requested_qty": "10.000",
+  "stock_unit": "piece",
+  "available_qty": "50.000",
+  "checked_at": "2026-09-18T10:00:00Z",
+  "substitutes": []
+}

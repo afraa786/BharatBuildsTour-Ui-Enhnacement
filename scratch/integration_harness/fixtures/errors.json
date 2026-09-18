@@ -1,0 +1,60 @@
+{
+  "_comment": "Error envelope acceptance matrix for Phase 2.",
+  "INVALID_QUANTITY": {
+    "expected_status": 422,
+    "response": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Requested quantity must be greater than zero.",
+        "request_id": "req_111"
+      }
+    }
+  },
+  "INVALID_REQUEST_SCHEMA": {
+    "expected_status": 422,
+    "response": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Field 'requested_qty' is required.",
+        "request_id": "req_112"
+      }
+    }
+  },
+  "PRODUCT_NOT_FOUND": {
+    "expected_status": 404,
+    "response": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Product not found.",
+        "request_id": "req_113"
+      }
+    }
+  },
+  "BUSINESS_CONTEXT_FAILURE": {
+    "expected_status": 404,
+    "response": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "No match found.",
+        "request_id": "req_114"
+      }
+    }
+  },
+  "CONFLICT_OR_AMBIGUITY": {
+    "_comment": "The contract explicitly uses 409 for AMBIGUOUS only if caller tries to USE an unresolved match. A simple check returns 200 with AMBIGUOUS status. But if they try to price it, they get 409.",
+    "expected_status": 409,
+    "response": {
+      "error": {
+        "code": "AMBIGUOUS",
+        "message": "Cannot price unresolved catalog match.",
+        "request_id": "req_115",
+        "details": {
+          "run_id": "RFQ-1042-ALPHA"
+        }
+      }
+    }
+  },
+  "DEFERRED_HTTP_MAPPING": {
+    "_comment": "If an HTTP code mapping is not fully frozen by the contract, we ensure the envelope format holds. HTTP mapping beyond what is defined is DEFERRED."
+  }
+}

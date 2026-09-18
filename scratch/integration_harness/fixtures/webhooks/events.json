@@ -1,0 +1,38 @@
+{
+  "_comment": "Webhook event matrix.",
+  "EVENTS": {
+    "VALID_PAID": {
+      "event": "payment.captured",
+      "expected_status": 200,
+      "expected_transition": "PAID",
+      "amount": 1000,
+      "currency": "INR"
+    },
+    "AUTHORIZED_ONLY": {
+      "event": "payment.authorized",
+      "expected_status": 200,
+      "expected_transition": "NONE",
+      "_comment": "AUTHORIZED is not PAID."
+    },
+    "AMOUNT_MISMATCH": {
+      "event": "payment.captured",
+      "amount": 500,
+      "expected_status": 200,
+      "expected_transition": "NONE",
+      "_comment": "Quarantined. Returns 200 to avoid retries, but NEVER marks PAID."
+    },
+    "DUPLICATE_EVENT_SAME_PAYLOAD": {
+      "event_id": "ev_123",
+      "payload_hash": "abc",
+      "expected_status": 200,
+      "expected_transition": "NONE",
+      "response_flag": "duplicate: true"
+    },
+    "DUPLICATE_EVENT_CHANGED_PAYLOAD": {
+      "event_id": "ev_123",
+      "payload_hash": "xyz",
+      "expected_status": 409,
+      "error_code": "DUPLICATE_EVENT"
+    }
+  }
+}
