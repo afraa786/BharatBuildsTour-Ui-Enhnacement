@@ -1,4 +1,5 @@
 from functools import lru_cache
+from uuid import UUID
 
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -36,6 +37,7 @@ class Settings(BaseSettings):
     whatsapp_test_verify_token: str = ""
     admin_whatsapp_numbers: str = ""
     admin_whatsapp_phone_number_ids: str = ""
+    whatsapp_phone_number_business_ids: str = ""
     vendor_whatsapp_numbers: str = ""
     razorpay_key_id: str = ""
     razorpay_key_secret: SecretStr = SecretStr("")
@@ -59,9 +61,20 @@ class Settings(BaseSettings):
 
     @property
     def admin_phone_number_ids(self) -> set[str]:
-        return {
-            n.strip() for n in self.admin_whatsapp_phone_number_ids.split(",") if n.strip()
-        }
+        return {n.strip() for n in self.admin_whatsapp_phone_number_ids.split(",") if n.strip()}
+
+    @property
+    def whatsapp_business_by_phone_number_id(self) -> dict[str, UUID]:
+        mapping: dict[str, UUID] = {}
+        for item in self.whatsapp_phone_number_business_ids.split(","):
+            if not item.strip() or ":" not in item:
+                continue
+            phone_number_id, business_id = item.split(":", 1)
+            try:
+                mapping[phone_number_id.strip()] = UUID(business_id.strip())
+            except ValueError:
+                continue
+        return mapping
 
     @property
     def vendor_wa_ids(self) -> set[str]:

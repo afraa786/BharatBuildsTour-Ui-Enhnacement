@@ -257,6 +257,20 @@ export interface TimelineEventOut {
   metadata: Record<string, unknown> | null
 }
 
+export type AgentCraftStatus = 'idle' | 'working' | 'waiting' | 'completed' | 'blocked' | 'failed'
+export type AgentCraftEventType = 'task' | 'result' | 'status'
+
+/** `GET /runs/{run_id}/agent-events` */
+export interface AgentCraftEventOut {
+  run_id: string
+  from_agent: string
+  to_agent: string
+  type: AgentCraftEventType
+  message: string
+  status: AgentCraftStatus
+  timestamp: IsoTimestamp
+}
+
 /** `POST /runs/{run_id}/approve` and `POST /runs/{run_id}/reject` body. */
 export interface ApprovalActionRequest {
   actor: string

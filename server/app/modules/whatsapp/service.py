@@ -225,6 +225,7 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
         is_admin_sender = message["wa_id"] in settings.admin_wa_ids
         is_vendor_sender = message["wa_id"] in settings.vendor_wa_ids
         is_admin_bot = message["phone_number_id"] in settings.admin_phone_number_ids
+        business_id = settings.whatsapp_business_by_phone_number_id.get(message["phone_number_id"])
 
         decision = route_message(
             message["text"],
@@ -266,7 +267,12 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
             outbound = runs_service.process_vendor_message(db, message["wa_id"], message["text"])
         else:
             outbound = runs_service.process_buyer_message(
-                db, message["wa_id"], message["text"], phone_number_id=message["phone_number_id"]
+                db,
+                message["wa_id"],
+                message["text"],
+                phone_number_id=message["phone_number_id"],
+                interactive_reply_id=message.get("interactive_reply_id"),
+                business_id=business_id,
             )
         db.commit()
 

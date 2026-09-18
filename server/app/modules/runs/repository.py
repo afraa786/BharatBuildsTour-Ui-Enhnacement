@@ -1,9 +1,10 @@
 from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from app.modules.runs.models import Approval, Run, RunEvent
+from app.modules.runs.models import Approval, BuyerCartSession, Run, RunEvent
 from app.modules.runs.state_machine import TERMINAL_STATUSES, RunStatus
 
 OPEN_STATUSES = [s.value for s in RunStatus if s not in TERMINAL_STATUSES]
@@ -13,7 +14,13 @@ def next_run_number(db: Session) -> int:
     return db.execute(text("SELECT nextval('run_number_seq')")).scalar_one()
 
 
-def create_run(db: Session, buyer_wa_id: str, buyer_name: str | None, raw_text: str) -> Run:
+def create_run(
+    db: Session,
+    buyer_wa_id: str,
+    buyer_name: str | None,
+    raw_text: str,
+    business_id: UUID | None = None,
+) -> Run:
     number = next_run_number(db)
     run = Run(
         run_id=f"RFQ-{number}",
@@ -22,6 +29,7 @@ def create_run(db: Session, buyer_wa_id: str, buyer_name: str | None, raw_text: 
         raw_text=raw_text,
         status=RunStatus.RECEIVED.value,
         line_items=[],
+        business_id=business_id,
     )
     db.add(run)
     db.flush()
@@ -85,3 +93,30 @@ def get_pending_approval(db: Session, run: Run) -> Approval | None:
         .order_by(Approval.created_at.desc())
     )
     return db.execute(stmt).scalars().first()
+
+
+def get_cart_session(db: Session, wa_id: str) -> BuyerCartSession | None:
+    stmt = (
+        select(BuyerCartSession)
+        .where(BuyerCartSession.wa_id == wa_id)
+        .order_by(BuyerCartSession.updated_at.desc())
+    )
+    return db.execute(stmt).scalars().first()
+
+
+def get_or_create_cart_session(
+    db: Session, wa_id: str, phone_number_id: str | None, business_id: UUID | None = None
+) -> BuyerCartSession:
+    session = get_cart_session(db, wa_id)
+    if session is not None:
+        return session
+    session = BuyerCartSession(
+        wa_id=wa_id,
+        phone_number_id=phone_number_id,
+        business_id=business_id,
+        step="IDLE",
+        cart=[],
+    )
+    db.add(session)
+    db.flush()
+    return session

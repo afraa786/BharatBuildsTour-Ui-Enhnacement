@@ -60,6 +60,33 @@ class RunEvent(Base):
     run: Mapped["Run"] = relationship(back_populates="events")
 
 
+class BuyerCartSession(Base):
+    """In-progress guided WhatsApp cart for a buyer, before a Run exists.
+
+    One buyer thread has at most one active session; looked up by most
+    recent `updated_at` rather than a unique constraint, since
+    `phone_number_id` is nullable and Postgres treats NULLs as distinct.
+    """
+
+    __tablename__ = "buyer_cart_sessions"
+    __table_args__ = (Index("ix_buyer_cart_sessions_wa_id", "wa_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    business_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="RESTRICT"), nullable=True
+    )
+    wa_id: Mapped[str] = mapped_column(String)
+    phone_number_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    step: Mapped[str] = mapped_column(String, default="IDLE")
+    pending_sku: Mapped[str | None] = mapped_column(String, nullable=True)
+    cart: Mapped[list] = mapped_column(JSONB, default=list)
+    last_prompt: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class Approval(Base):
     __tablename__ = "approvals"
 

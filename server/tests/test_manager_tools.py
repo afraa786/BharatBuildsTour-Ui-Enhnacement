@@ -52,6 +52,8 @@ def test_manager_tool_catalog_contains_only_expected_read_tools() -> None:
         "search_customer",
         "get_business_team",
         "get_mvp_team",
+        "preview_commerce_agent_conversation",
+        "preview_daily_summary_agent_conversation",
     }
 
 
@@ -107,9 +109,9 @@ def test_invoice_and_blocked_tools_cover_generated_and_blocked(monkeypatch) -> N
     monkeypatch.setattr(manager_tools, "get_run_by_run_id", fake_get_run)
     tools = _tools_by_name()
 
-    assert tools["why_run_blocked"].invoke({"run_id": "RFQ-1043"})[
-        "unresolved_items"
-    ] == ["unknown cable"]
+    assert tools["why_run_blocked"].invoke({"run_id": "RFQ-1043"})["unresolved_items"] == [
+        "unknown cable"
+    ]
     assert tools["get_invoice_status"].invoke({"run_id": "RFQ-1044"}) == {
         "found": True,
         "run_id": "RFQ-1044",
@@ -129,6 +131,9 @@ def test_inventory_low_stock_vendor_and_reminder_tools() -> None:
     assert tools["get_reminders_due"].invoke({})["items"] == []
     assert tools["get_business_team"].invoke({})["owner_entrypoint"] == "Principal Manager"
     assert tools["get_mvp_team"].invoke({})["model"] == "manager_led_business_team"
+    commerce = tools["preview_commerce_agent_conversation"].invoke({"text": "20 led bulb 9w"})
+    assert commerce["status"] == "READY_TO_SEND"
+    assert commerce["transcript"][0]["from"] == "Principal Manager"
 
 
 def test_list_based_manager_tools(monkeypatch) -> None:
@@ -163,10 +168,14 @@ def test_list_based_manager_tools(monkeypatch) -> None:
     assert tools["get_pending_payments"].invoke({})["items"][0]["run_id"] == "RFQ-2"
     assert tools["get_open_quotes_today"].invoke({})["items"][0]["run_id"] == "RFQ-1"
     assert tools["get_daily_summary"].invoke({})["urgent_blockers"][0]["run_id"] == "RFQ-3"
+    daily_conversation = tools["preview_daily_summary_agent_conversation"].invoke({})
+    assert daily_conversation["transcript"][0]["to"] == "Daily Summary Agent"
+    assert daily_conversation["result"]["urgent_blockers_count"] == 1
     assert tools["get_orders_in_progress"].invoke({})["items"][0]["run_id"] == "RFQ-2"
-    assert tools["get_recent_customer_activity"].invoke({"query": "beta"})["items"][0][
-        "run_id"
-    ] == "RFQ-2"
+    assert (
+        tools["get_recent_customer_activity"].invoke({"query": "beta"})["items"][0]["run_id"]
+        == "RFQ-2"
+    )
     assert tools["search_customer"].invoke({"query": "buyer-1"})["items"][0]["run_id"] == "RFQ-1"
 
 

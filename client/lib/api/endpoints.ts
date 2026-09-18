@@ -35,6 +35,7 @@ import type {
   CommercialProduct,
   CommercialQuote,
   AdminCommandRequest,
+  AgentCraftEventOut,
   DemoEvent,
   DemoInvoice,
   DemoPayment,
@@ -225,6 +226,11 @@ export function getLifecycleRun(runId: string): Promise<RunOut> {
 /** `GET /runs/{id}/timeline` */
 export function getLifecycleTimeline(runId: string): Promise<TimelineEventOut[]> {
   return apiGet<TimelineEventOut[]>(`/runs/${encodeURIComponent(runId)}/timeline`)
+}
+
+/** `GET /runs/{id}/agent-events` - AgentCraft-compatible workflow events. */
+export function getRunAgentEvents(runId: string): Promise<AgentCraftEventOut[]> {
+  return apiGet<AgentCraftEventOut[]>(`/runs/${encodeURIComponent(runId)}/agent-events`)
 }
 
 // ---------------------------------------------------------------------------

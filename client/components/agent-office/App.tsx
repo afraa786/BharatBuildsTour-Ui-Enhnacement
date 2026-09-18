@@ -30,13 +30,16 @@ import {
 import { ROLE_TO_CHAR } from './config'
 import {
   agentSimulationConfig,
+  mockAgentEvents,
   getAgentConfig,
   isAllowedConnection,
   scheduleMockEvents,
   toAgentVisualEvent,
   type AgentConfig,
+  type AgentSimulationEvent,
   type AgentStatus,
 } from '@/lib/agent-simulation/simulation'
+import { getRunAgentEvents, listLifecycleRuns } from '@/lib/api/endpoints'
 import {
   createInitialSimulationState,
   reduceSimulationState,
@@ -60,6 +63,7 @@ const params = typeof window === 'undefined'
 const isHelperMode = params.has('helper')
 const isSimMode = params.has('sim') || params.has('video')
 const isVideoMode = params.has('video')
+const requestedRunId = params.get('runId') ?? params.get('run') ?? params.get('agentRun')
 // Why: allow ?theme=office on demo/sim URLs to preload Dunder Mifflin mode
 import { setTheme as _setTheme } from './theme'
 if (params.get('theme') === 'office') { _setTheme('office') }
@@ -395,6 +399,7 @@ const App: React.FC = () => {
   const [simulationState, setSimulationState] = useState<SimulationState>(() =>
     createInitialSimulationState(agentSimulationConfig),
   )
+  const [agentEvents, setAgentEvents] = useState<AgentSimulationEvent[]>(mockAgentEvents)
   const agentMetaRef = useRef<Map<string, AgentMeta>>(new Map(
     agents.map(agent => [agent.id, {
       spawnedAt: Date.now(),
@@ -1059,14 +1064,25 @@ const App: React.FC = () => {
 
   useAgentSocket({ onEvent: handleEvent, url: 'ws://localhost:3334/ws', disabled: isSimMode })
 
-  // Replace only this stream with a backend adapter when the real event source is ready.
-  useEffect(() => {
-    if (!USE_MOCK_AGENT_SIMULATION || isSimMode) return
+  // AgentCraft stream: poll the real backend for the latest run's agent events and
+  // animate only newly-seen events, so a WhatsApp message sent mid-session shows up
+  // live instead of requiring a page refresh. Falls back to the bundled fixture once
+  // if no real run ever shows up.
+  const currentRunIdRef = useRef<string | null>(null)
+  const scheduledCountRef = useRef(0)
+  const pendingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const fallbackFiredRef = useRef(false)
 
-    const timers = scheduleMockEvents().flatMap(scheduled => {
+  const scheduleNewAgentEvents = useCallback((events: AgentSimulationEvent[]) => {
+    const already = scheduledCountRef.current
+    const tail = events.slice(already)
+    if (tail.length === 0) return
+    scheduledCountRef.current = events.length
+
+    scheduleMockEvents(tail, 4000).forEach(scheduled => {
       const visualEvent = toAgentVisualEvent(scheduled.event)
-      if (!visualEvent) return []
-      return [setTimeout(() => {
+      if (!visualEvent) return
+      const timer = setTimeout(() => {
         setSimulationState(previous => reduceSimulationState(previous, scheduled.event))
         handleEvent({
           type: visualEvent.type,
@@ -1075,11 +1091,56 @@ const App: React.FC = () => {
           status: visualEvent.status,
           text: visualEvent.text,
         })
-      }, scheduled.delayMs + 1800)]
+      }, scheduled.delayMs + 1800)
+      pendingTimersRef.current.push(timer)
     })
-
-    return () => timers.forEach(clearTimeout)
   }, [handleEvent])
+
+  useEffect(() => {
+    if (!USE_MOCK_AGENT_SIMULATION || isSimMode) return
+    let cancelled = false
+
+    async function poll() {
+      const hasToken = typeof window !== 'undefined' && Boolean(window.localStorage.getItem('stockaware_owner_token'))
+      if (!requestedRunId && !hasToken) return
+      try {
+        const runId = requestedRunId ?? (await listLifecycleRuns())[0]?.run_id
+        if (!runId || cancelled) return
+
+        if (runId !== currentRunIdRef.current) {
+          pendingTimersRef.current.forEach(clearTimeout)
+          pendingTimersRef.current = []
+          scheduledCountRef.current = 0
+          currentRunIdRef.current = runId
+          fallbackFiredRef.current = true
+          addMsg('Manager', 'boss', AGENT_CONFIGS.boss.color, `Live agent flow loaded for ${runId}`, true)
+        }
+
+        const events = await getRunAgentEvents(runId)
+        if (cancelled || events.length === 0) return
+        const sorted = [...events].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+        setAgentEvents(sorted)
+        scheduleNewAgentEvents(sorted)
+      } catch {
+        // Network hiccup / no runs yet / auth issue — try again next tick, or fall
+        // back to the fixture below if nothing real ever shows up.
+      }
+    }
+
+    void poll()
+    const intervalId = setInterval(poll, 4000)
+
+    const fallbackTimer = setTimeout(() => {
+      if (!cancelled && !fallbackFiredRef.current) scheduleNewAgentEvents(mockAgentEvents)
+    }, 5500)
+
+    return () => {
+      cancelled = true
+      clearInterval(intervalId)
+      clearTimeout(fallbackTimer)
+      pendingTimersRef.current.forEach(clearTimeout)
+    }
+  }, [addMsg, scheduleNewAgentEvents])
 
   // ---------------------------------------------------------------------------
   // Simulation loop — spawns/completes fake agents (only in ?sim mode)

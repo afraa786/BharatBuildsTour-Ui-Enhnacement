@@ -74,6 +74,7 @@ locals {
     { name = "WHATSAPP_BIZ_PHONE_NUMBER_ID", value = var.whatsapp_biz_phone_number_id },
     { name = "WHATSAPP_TEST_PHONE_NUMBER_ID", value = var.whatsapp_test_phone_number_id },
     { name = "ADMIN_WHATSAPP_NUMBERS", value = var.admin_whatsapp_numbers },
+    { name = "WHATSAPP_PHONE_NUMBER_BUSINESS_IDS", value = var.whatsapp_phone_number_business_ids },
   ]
 
   common_secrets = concat([

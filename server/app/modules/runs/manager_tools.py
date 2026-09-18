@@ -16,7 +16,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.modules.runs import mock_desks
-from app.modules.runs.agent_team import list_agents, list_desks
+from app.modules.runs.agent_team import (
+    list_agents,
+    list_desks,
+    run_commerce_conversation,
+    run_daily_summary_conversation,
+)
 from app.modules.runs.repository import get_run_by_run_id, get_timeline, list_runs
 from app.modules.runs.state_machine import RunStatus
 
@@ -27,6 +32,10 @@ class RunIdInput(BaseModel):
 
 class CustomerSearchInput(BaseModel):
     query: str = Field(description="Buyer phone number, name, or business search text")
+
+
+class TextInput(BaseModel):
+    text: str = Field(description="The source text to route through the agent conversation")
 
 
 def _get_run_status(db: Session, run_id: str) -> dict:
@@ -247,6 +256,14 @@ def _get_mvp_team() -> dict:
     }
 
 
+def _preview_commerce_conversation(text: str) -> dict:
+    return run_commerce_conversation(text)
+
+
+def _preview_daily_summary_conversation(db: Session) -> dict:
+    return run_daily_summary_conversation(_get_daily_summary(db))
+
+
 def _get_inventory(db: Session) -> dict:
     items = [
         {
@@ -426,5 +443,22 @@ def build_tools(db: Session) -> list[StructuredTool]:
             func=lambda: _get_mvp_team(),
             name="get_mvp_team",
             description="Show only the currently recommended MVP desks and specialist agents.",
+        ),
+        StructuredTool.from_function(
+            func=lambda text: _preview_commerce_conversation(text),
+            name="preview_commerce_agent_conversation",
+            description=(
+                "Preview how Commerce Desk agents pass a buyer request between each other. "
+                "Read-only; does not create a run, quote, payment, or invoice."
+            ),
+            args_schema=TextInput,
+        ),
+        StructuredTool.from_function(
+            func=lambda: _preview_daily_summary_conversation(db),
+            name="preview_daily_summary_agent_conversation",
+            description=(
+                "Preview how Daily Summary and Audit agents coordinate on today's summary. "
+                "Read-only; does not mutate reminders, approvals, or runs."
+            ),
         ),
     ]

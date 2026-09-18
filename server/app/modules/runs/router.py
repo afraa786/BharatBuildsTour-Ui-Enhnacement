@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.modules.runs import service
 from app.modules.runs.schemas import (
     AdminCommandIn,
+    AgentCraftEventOut,
     ApprovalActionIn,
     OutboundMessageOut,
     RunOut,
@@ -81,6 +82,14 @@ def get_run_timeline(run_id: str, db: DbSession) -> list[TimelineEventOut]:
         )
         for e in events
     ]
+
+
+@router.get("/runs/{run_id}/agent-events", response_model=list[AgentCraftEventOut])
+def get_run_agent_events(run_id: str, db: DbSession) -> list[AgentCraftEventOut]:
+    events = service.get_agentcraft_events(db, run_id)
+    if events is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{run_id} not found")
+    return [AgentCraftEventOut.model_validate(event) for event in events]
 
 
 @router.post("/runs/{run_id}/approve", response_model=list[OutboundMessageOut])

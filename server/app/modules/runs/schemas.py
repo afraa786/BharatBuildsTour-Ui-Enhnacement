@@ -31,6 +31,16 @@ class TimelineEventOut(BaseModel):
     metadata: dict | None = None
 
 
+class AgentCraftEventOut(BaseModel):
+    run_id: str
+    from_agent: str
+    to_agent: str
+    type: str
+    message: str
+    status: str
+    timestamp: datetime
+
+
 class AdminCommandIn(BaseModel):
     actor: str
     text: str

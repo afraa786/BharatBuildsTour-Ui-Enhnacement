@@ -21,6 +21,7 @@ from app.modules.invoices.models import Invoice
 from app.modules.payments.models import Payment
 from app.modules.pricing.models import Quote
 from app.modules.runs.models import Run
+from app.modules.runs.service import get_agentcraft_events
 
 router = APIRouter(tags=["owner-dashboard"])
 Db = Annotated[Session, Depends(get_db)]
@@ -313,20 +314,35 @@ def edit_buyer(id: UUID, body: BuyerPatch, db: Db, user: CurrentUser):
     return buyer_out(b)
 
 
+def _as_uuid(value: str | None) -> UUID | None:
+    """Run.quote_id/payment_id/invoice_id may hold mock-pipeline string ids
+    (e.g. "Q-1005-V1") rather than real commercial-schema UUIDs; treat those
+    as "no linked record" instead of erroring the whole run list."""
+    if not value:
+        return None
+    try:
+        return UUID(str(value))
+    except ValueError:
+        return None
+
+
 def run_out(db, r, b):
+    quote_id = _as_uuid(r.quote_id)
+    payment_id = _as_uuid(r.payment_id)
+    invoice_id = _as_uuid(r.invoice_id)
     q = (
-        db.scalar(select(Quote).where(Quote.business_id == b, Quote.id == r.quote_id))
-        if r.quote_id
+        db.scalar(select(Quote).where(Quote.business_id == b, Quote.id == quote_id))
+        if quote_id
         else None
     )
     p = (
-        db.scalar(select(Payment).where(Payment.business_id == b, Payment.id == r.payment_id))
-        if r.payment_id
+        db.scalar(select(Payment).where(Payment.business_id == b, Payment.id == payment_id))
+        if payment_id
         else None
     )
     i = (
-        db.scalar(select(Invoice).where(Invoice.business_id == b, Invoice.id == r.invoice_id))
-        if r.invoice_id
+        db.scalar(select(Invoice).where(Invoice.business_id == b, Invoice.id == invoice_id))
+        if invoice_id
         else None
     )
     return {
@@ -373,6 +389,14 @@ def run(run_id: str, db: Db, user: CurrentUser):
     if not r:
         raise HTTPException(404, "Not found")
     return run_out(db, r, user.business_id)
+
+
+@router.get("/runs/{run_id}/agent-events")
+def run_agent_events(run_id: str, db: Db, user: CurrentUser):
+    events = get_agentcraft_events(db, run_id, business_id=user.business_id)
+    if events is None:
+        raise HTTPException(404, "Not found")
+    return events
 
 
 @router.patch("/runs/{run_id}/status")

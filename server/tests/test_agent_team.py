@@ -1,4 +1,13 @@
-from app.modules.runs.agent_team import AgentId, DeskId, delegate_to_agent, list_agents, list_desks
+from app.modules.runs.agent_team import (
+    AgentId,
+    DeskId,
+    delegate_to_agent,
+    list_agents,
+    list_desks,
+    run_agentcraft_commerce_events,
+    run_commerce_conversation,
+    run_daily_summary_conversation,
+)
 
 
 def test_manager_led_team_has_expected_desks() -> None:
@@ -57,3 +66,65 @@ def test_payment_invoice_and_placeholder_agents_return_stable_shapes() -> None:
     office = delegate_to_agent(AgentId.EMAIL, {"subject": "Supplier follow-up"})
     assert office["desk"] == "Office/PA Desk"
     assert office["result"]["status"] == "READY_NOT_CONNECTED"
+
+
+def test_commerce_conversation_passes_outputs_between_agents() -> None:
+    result = run_commerce_conversation("20 led bulb 9w")
+
+    assert result["workflow"] == "commerce_quote"
+    assert result["status"] == "READY_TO_SEND"
+    assert [turn["to"] for turn in result["transcript"]] == [
+        "Customer Intake Agent",
+        "Catalog/SKU Agent",
+        "Inventory Agent",
+        "Pricing Agent",
+        "Quote Agent",
+        "Principal Manager",
+    ]
+    assert result["result"]["quote_summary"]["total"] == "2242.00"
+
+
+def test_commerce_conversation_stops_for_catalog_clarification() -> None:
+    result = run_commerce_conversation("20 mystery part")
+
+    assert result["status"] == "NEEDS_CLARIFICATION"
+    assert result["transcript"][-1]["to"] == "Principal Manager"
+    assert result["result"]["unresolved_items"][0]["match_status"] == "NOT_FOUND"
+
+
+def test_daily_summary_conversation_routes_blockers_to_approval_guard() -> None:
+    result = run_daily_summary_conversation(
+        {
+            "open_quotes": [{"run_id": "RFQ-1"}],
+            "pending_payments": [],
+            "low_stock": [{"sku": "MCB-32A"}],
+            "urgent_blockers": [{"run_id": "RFQ-2", "status": "APPROVAL_PENDING"}],
+        }
+    )
+
+    assert result["status"] == "READY"
+    assert [turn["to"] for turn in result["transcript"]] == [
+        "Daily Summary Agent",
+        "Approval Guard Agent",
+        "Principal Manager",
+    ]
+    assert result["result"]["urgent_blockers_count"] == 1
+
+
+def test_agentcraft_events_match_frontend_contract() -> None:
+    events = run_agentcraft_commerce_events(run_id="RFQ-1042", text="20 led bulb 9w")
+
+    assert events
+    assert events[0].keys() == {
+        "run_id",
+        "from_agent",
+        "to_agent",
+        "type",
+        "message",
+        "status",
+        "timestamp",
+    }
+    assert events[0]["run_id"] == "RFQ-1042"
+    assert events[0]["from_agent"] == "manager"
+    assert events[0]["to_agent"] == "sales"
+    assert events[-1]["to_agent"] == "manager"

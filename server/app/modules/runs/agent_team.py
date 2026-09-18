@@ -7,6 +7,7 @@ independent chatbots and they do not bypass deterministic commerce rules.
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
@@ -72,7 +73,40 @@ class Desk:
     agents: tuple[AgentId, ...]
 
 
+@dataclass(frozen=True)
+class AgentTurn:
+    from_agent: AgentId
+    to_agent: AgentId
+    message: str
+    payload: dict[str, Any]
+
+
 AgentHandler = Callable[[dict[str, Any]], dict[str, Any]]
+
+AGENTCRAFT_AGENT_IDS_BY_NAME = {
+    "Principal Manager": "manager",
+    "Customer Intake Agent": "sales",
+    "Catalog/SKU Agent": "sales",
+    "Inventory Agent": "inventory",
+    "Pricing Agent": "pricing",
+    "Quote Agent": "sales",
+    "Payment Agent": "accounts",
+    "Invoice Agent": "accounts",
+    "Daily Summary Agent": "assistant-claude",
+    "Approval Guard Agent": "qa",
+    "Audit Trail Agent": "qa",
+    "Policy/Compliance Agent": "qa",
+}
+
+AGENTCRAFT_AGENT_IDS_BY_ROLE = {
+    "Manager": "manager",
+    "Sales Desk": "sales",
+    "Stock Desk": "inventory",
+    "Pricing Desk": "pricing",
+    "Accounts Desk": "accounts",
+    "Invoice Desk": "accounts",
+    "Audit Desk": "qa",
+}
 
 
 AGENTS: dict[AgentId, DeskAgent] = {
@@ -484,3 +518,250 @@ def delegate_to_agent(agent_id: AgentId | str, payload: dict[str, Any]) -> dict[
         "desk": DESKS[AGENTS[resolved].desk].name,
         "result": handler(payload),
     }
+
+
+def _turn(
+    from_agent: AgentId,
+    to_agent: AgentId,
+    message: str,
+    payload: dict[str, Any],
+) -> AgentTurn:
+    return AgentTurn(from_agent, to_agent, message, payload)
+
+
+def _public_turn(turn: AgentTurn) -> dict[str, Any]:
+    return {
+        "from": AGENTS[turn.from_agent].name,
+        "to": AGENTS[turn.to_agent].name,
+        "message": turn.message,
+        "payload": turn.payload,
+    }
+
+
+def run_commerce_conversation(text: str, *, content_type: str = "text") -> dict[str, Any]:
+    """Run a controlled agent-to-agent quote workflow.
+
+    This is a deterministic conversation: each agent receives the previous
+    agent's structured output, adds its own facts, and passes them forward.
+    """
+    transcript: list[AgentTurn] = []
+
+    intake_in = {"text": text, "content_type": content_type}
+    transcript.append(
+        _turn(
+            AgentId.PRINCIPAL_MANAGER,
+            AgentId.CUSTOMER_INTAKE,
+            "Normalize this buyer request for the Commerce Desk.",
+            intake_in,
+        )
+    )
+    intake = delegate_to_agent(AgentId.CUSTOMER_INTAKE, intake_in)["result"]
+    transcript.append(
+        _turn(
+            AgentId.CUSTOMER_INTAKE,
+            AgentId.CATALOG_SKU,
+            "Here is the normalized request. Match it to catalogue SKUs.",
+            {**intake, "text": intake["normalized_text"]},
+        )
+    )
+
+    catalog = delegate_to_agent(AgentId.CATALOG_SKU, {"text": intake["normalized_text"]})["result"]
+    unresolved = [item for item in catalog["line_items"] if item.get("match_status") != "MATCHED"]
+    if unresolved:
+        transcript.append(
+            _turn(
+                AgentId.CATALOG_SKU,
+                AgentId.PRINCIPAL_MANAGER,
+                "I found unresolved catalogue items. Ask the buyer for clarification.",
+                {"unresolved_items": unresolved},
+            )
+        )
+        return {
+            "workflow": "commerce_quote",
+            "status": "NEEDS_CLARIFICATION",
+            "transcript": [_public_turn(turn) for turn in transcript],
+            "result": {"unresolved_items": unresolved},
+        }
+
+    transcript.append(
+        _turn(
+            AgentId.CATALOG_SKU,
+            AgentId.INVENTORY,
+            "Catalogue items are matched. Check stock without reserving inventory.",
+            catalog,
+        )
+    )
+    inventory = delegate_to_agent(AgentId.INVENTORY, catalog)["result"]
+
+    transcript.append(
+        _turn(
+            AgentId.INVENTORY,
+            AgentId.PRICING,
+            "Stock check is ready. Calculate quote and approval reasons.",
+            inventory,
+        )
+    )
+    pricing = delegate_to_agent(AgentId.PRICING, inventory)["result"]
+
+    transcript.append(
+        _turn(
+            AgentId.PRICING,
+            AgentId.QUOTE,
+            "Pricing is ready. Prepare the quote summary for the Manager.",
+            pricing,
+        )
+    )
+    quote = delegate_to_agent(AgentId.QUOTE, pricing)["result"]
+
+    next_agent = (
+        AgentId.APPROVAL_GUARD
+        if quote["quote_summary"]["approval_required"]
+        else AgentId.PRINCIPAL_MANAGER
+    )
+    transcript.append(
+        _turn(
+            AgentId.QUOTE,
+            next_agent,
+            "Quote summary is ready. Decide whether owner approval is needed.",
+            quote,
+        )
+    )
+
+    return {
+        "workflow": "commerce_quote",
+        "status": "APPROVAL_REQUIRED"
+        if quote["quote_summary"]["approval_required"]
+        else "READY_TO_SEND",
+        "transcript": [_public_turn(turn) for turn in transcript],
+        "result": {**pricing, **quote},
+    }
+
+
+def run_daily_summary_conversation(summary: dict[str, Any]) -> dict[str, Any]:
+    transcript = [
+        _turn(
+            AgentId.PRINCIPAL_MANAGER,
+            AgentId.DAILY_SUMMARY,
+            "Format today's operating facts into an owner-ready summary.",
+            summary,
+        )
+    ]
+    blockers = summary.get("urgent_blockers", [])
+    if blockers:
+        transcript.append(
+            _turn(
+                AgentId.DAILY_SUMMARY,
+                AgentId.APPROVAL_GUARD,
+                "There are blockers. Check whether any need owner approval guardrails.",
+                {"urgent_blockers": blockers},
+            )
+        )
+        transcript.append(
+            _turn(
+                AgentId.APPROVAL_GUARD,
+                AgentId.PRINCIPAL_MANAGER,
+                "Blockers reviewed. Use exact commands for risky actions.",
+                {"requires_exact_commands": True, "urgent_blockers": blockers},
+            )
+        )
+    else:
+        transcript.append(
+            _turn(
+                AgentId.DAILY_SUMMARY,
+                AgentId.PRINCIPAL_MANAGER,
+                "No urgent blockers found. Send the short summary.",
+                {"requires_exact_commands": False},
+            )
+        )
+
+    return {
+        "workflow": "daily_summary",
+        "status": "READY",
+        "transcript": [_public_turn(turn) for turn in transcript],
+        "result": {
+            "open_quotes_count": len(summary.get("open_quotes", [])),
+            "pending_payments_count": len(summary.get("pending_payments", [])),
+            "low_stock_count": len(summary.get("low_stock", [])),
+            "urgent_blockers_count": len(blockers),
+        },
+    }
+
+
+def agentcraft_events_from_transcript(
+    *,
+    run_id: str,
+    transcript: list[dict[str, Any]],
+    started_at: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Convert backend agent turns to the frontend AgentCraft event contract."""
+    base_time = started_at or datetime.now(UTC)
+    events = []
+    for index, turn in enumerate(transcript):
+        from_agent = AGENTCRAFT_AGENT_IDS_BY_NAME.get(turn["from"])
+        to_agent = AGENTCRAFT_AGENT_IDS_BY_NAME.get(turn["to"])
+        if not from_agent or not to_agent or from_agent == to_agent:
+            continue
+        message = str(turn.get("message") or "")
+        is_result = to_agent == "manager"
+        status = "waiting" if "approval" in message.casefold() else "working"
+        if is_result:
+            status = "blocked" if "clarification" in message.casefold() else "completed"
+        events.append(
+            {
+                "run_id": run_id,
+                "from_agent": from_agent,
+                "to_agent": to_agent,
+                "type": "result" if is_result else "task",
+                "message": message,
+                "status": status,
+                "timestamp": (base_time + timedelta(seconds=index * 3)).isoformat(),
+            }
+        )
+    return events
+
+
+def run_agentcraft_commerce_events(
+    *,
+    run_id: str,
+    text: str,
+    started_at: datetime | None = None,
+) -> list[dict[str, Any]]:
+    conversation = run_commerce_conversation(text)
+    return agentcraft_events_from_transcript(
+        run_id=run_id,
+        transcript=conversation["transcript"],
+        started_at=started_at,
+    )
+
+
+def agentcraft_events_from_run_events(
+    *, run_id: str, run_events: list[Any]
+) -> list[dict[str, Any]]:
+    """Convert actual persisted run timeline events to AgentCraft events."""
+    events = []
+    previous_agent = "manager"
+    for event in run_events:
+        to_agent = AGENTCRAFT_AGENT_IDS_BY_ROLE.get(event.role, "manager")
+        if to_agent == previous_agent:
+            continue
+        status = "working"
+        event_text = event.event.casefold()
+        if "approval" in event_text:
+            status = "waiting"
+        elif "could not" in event_text or "low stock" in event_text:
+            status = "blocked"
+        elif "sent" in event_text or "created" in event_text or "confirmed" in event_text:
+            status = "completed"
+        events.append(
+            {
+                "run_id": run_id,
+                "from_agent": previous_agent,
+                "to_agent": to_agent,
+                "type": "result" if to_agent == "manager" else "task",
+                "message": event.event,
+                "status": status,
+                "timestamp": event.created_at.isoformat(),
+            }
+        )
+        previous_agent = to_agent
+    return events

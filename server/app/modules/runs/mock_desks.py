@@ -13,6 +13,7 @@ CATALOG = [
     {
         "sku": "MCB-16A",
         "name": "MCB 16A",
+        "category": "Circuit Protection",
         "aliases": ["mcb 16", "mcb-16", "16a mcb"],
         "unit": "pc",
         "unit_price": Decimal("180.00"),
@@ -22,6 +23,7 @@ CATALOG = [
     {
         "sku": "MCB-32A",
         "name": "MCB 32A",
+        "category": "Circuit Protection",
         "aliases": ["mcb 32", "mcb-32", "32a mcb", "32amp mcb"],
         "unit": "pc",
         "unit_price": Decimal("220.00"),
@@ -31,6 +33,7 @@ CATALOG = [
     {
         "sku": "MCCB-63A",
         "name": "MCCB 63A",
+        "category": "Circuit Protection",
         "aliases": ["mccb 63", "63a mccb"],
         "unit": "pc",
         "unit_price": Decimal("1450.00"),
@@ -40,6 +43,7 @@ CATALOG = [
     {
         "sku": "CU-WIRE-1.5",
         "name": "Copper Wire 1.5mm",
+        "category": "Wiring",
         "aliases": ["1.5mm wire", "copper wire 1.5", "1.5 sq mm wire"],
         "unit": "coil",
         "unit_price": Decimal("1250.00"),
@@ -49,6 +53,7 @@ CATALOG = [
     {
         "sku": "CU-WIRE-2.5",
         "name": "Copper Wire 2.5mm",
+        "category": "Wiring",
         "aliases": ["2.5mm wire", "copper wire 2.5", "2.5 sq mm wire"],
         "unit": "coil",
         "unit_price": Decimal("1850.00"),
@@ -58,6 +63,7 @@ CATALOG = [
     {
         "sku": "LED-9W",
         "name": "LED Bulb 9W",
+        "category": "Lighting",
         "aliases": ["led bulb 9w", "9w led", "led 9 watt"],
         "unit": "pc",
         "unit_price": Decimal("95.00"),
@@ -67,6 +73,7 @@ CATALOG = [
     {
         "sku": "SW-SOCKET-CMB",
         "name": "Switch Socket Combo",
+        "category": "Accessories",
         "aliases": ["switch socket", "socket combo"],
         "unit": "pc",
         "unit_price": Decimal("140.00"),
@@ -76,6 +83,7 @@ CATALOG = [
     {
         "sku": "DB-8WAY",
         "name": "Distribution Board 8-way",
+        "category": "Circuit Protection",
         "aliases": ["db 8 way", "8 way db", "distribution board 8way"],
         "unit": "pc",
         "unit_price": Decimal("2100.00"),
@@ -85,6 +93,7 @@ CATALOG = [
     {
         "sku": "PVC-CONDUIT-25",
         "name": "PVC Conduit Pipe 25mm",
+        "category": "Accessories",
         "aliases": ["conduit pipe 25mm", "25mm pipe", "pvc pipe 25"],
         "unit": "pc",
         "unit_price": Decimal("65.00"),
@@ -94,6 +103,7 @@ CATALOG = [
     {
         "sku": "CABLE-TIE-PK",
         "name": "Cable Ties Pack",
+        "category": "Accessories",
         "aliases": ["cable tie", "cable ties"],
         "unit": "pack",
         "unit_price": Decimal("55.00"),

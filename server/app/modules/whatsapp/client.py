@@ -9,6 +9,74 @@ logger = logging.getLogger(__name__)
 
 GRAPH_API_VERSION = "v21.0"
 
+LIST_MAX_ROWS = 10
+BUTTON_MAX_BUTTONS = 3
+
+
+def build_list_interactive(
+    *,
+    body: str,
+    button_text: str,
+    sections: list[dict[str, Any]],
+    header: str | None = None,
+    footer: str | None = None,
+) -> dict[str, Any]:
+    """Build a WhatsApp Cloud API interactive List Message.
+
+    `sections` is `[{"title": str, "rows": [{"id", "title", "description"?}]}]`.
+    WhatsApp caps list messages at 10 rows total across all sections.
+    """
+    total_rows = sum(len(section["rows"]) for section in sections)
+    if total_rows > LIST_MAX_ROWS:
+        raise ValueError(
+            f"WhatsApp list messages support at most {LIST_MAX_ROWS} rows total, got {total_rows}"
+        )
+
+    interactive: dict[str, Any] = {
+        "type": "list",
+        "body": {"text": body},
+        "action": {"button": button_text, "sections": sections},
+    }
+    if header:
+        interactive["header"] = {"type": "text", "text": header}
+    if footer:
+        interactive["footer"] = {"text": footer}
+    return interactive
+
+
+def build_button_interactive(
+    *,
+    body: str,
+    buttons: list[tuple[str, str]],
+    header: str | None = None,
+    footer: str | None = None,
+) -> dict[str, Any]:
+    """Build a WhatsApp Cloud API interactive Reply Buttons message.
+
+    `buttons` is `[(id, title), ...]`. WhatsApp caps reply buttons at 3.
+    """
+    if len(buttons) > BUTTON_MAX_BUTTONS:
+        raise ValueError(
+            f"WhatsApp button messages support at most {BUTTON_MAX_BUTTONS} buttons, "
+            f"got {len(buttons)}"
+        )
+
+    interactive: dict[str, Any] = {
+        "type": "button",
+        "body": {"text": body},
+        "action": {
+            "buttons": [
+                {"type": "reply", "reply": {"id": button_id, "title": title}}
+                for button_id, title in buttons
+            ]
+        },
+    }
+    if header:
+        interactive["header"] = {"type": "text", "text": header}
+    if footer:
+        interactive["footer"] = {"text": footer}
+    return interactive
+
 
 def build_message_payload(
     *,

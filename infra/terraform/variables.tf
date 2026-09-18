@@ -110,6 +110,12 @@ variable "admin_whatsapp_numbers" {
   default     = ""
 }
 
+variable "whatsapp_phone_number_business_ids" {
+  description = "Comma-separated phone_number_id:business_uuid pairs for multi-business WhatsApp routing."
+  type        = string
+  default     = ""
+}
+
 variable "cors_origins" {
   type    = string
   default = "[\"http://localhost:3000\"]"
