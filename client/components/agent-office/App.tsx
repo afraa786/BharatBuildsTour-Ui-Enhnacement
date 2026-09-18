@@ -1748,8 +1748,9 @@ const App: React.FC = () => {
           }
         }
 
-        // Random break trigger
+        // Random break trigger — cosmetic flavor only, skip when showing real order data
         if (
+          (!USE_MOCK_AGENT_SIMULATION || isSimMode) &&
           updated.state === 'working' &&
           meta.arrivedAtDeskAt !== null &&
           !meta.onBreak &&
@@ -1823,6 +1824,10 @@ const App: React.FC = () => {
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
+    // This is cosmetic "generic coding office" flavor, unrelated to real order
+    // activity. Never run it when the office is showing real business data.
+    if (USE_MOCK_AGENT_SIMULATION && !isSimMode) return
+
     // Percentage-based target positions for each event type (matching room layout)
     const EVENT_TARGETS: Record<string, { x: number; y: number }> = {
       'fire-drill': { x: 67.5, y: 48.9 },
