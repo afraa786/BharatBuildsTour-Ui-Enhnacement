@@ -5,8 +5,11 @@ import hmac
 import json
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import Any
 from uuid import UUID, uuid4
 
+import httpx
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -432,3 +435,125 @@ def process_webhook(raw_body: bytes, signature: str | None, event_id: str | None
             status=PaymentStatus(payment.status),
             reconciliation_hold=payment.reconciliation_hold,
         )
+
+
+# Lightweight Razorpay adapter helpers used by the signed webhook endpoint.
+
+RAZORPAY_PAYMENT_LINKS_URL = "https://api.razorpay.com/v1/payment_links"
+
+
+class RazorpayPaymentLinkRequest(BaseModel):
+    run_id: str = Field(min_length=1)
+    quote_id: str = Field(min_length=1)
+    amount_paise: int = Field(gt=0)
+    buyer_name: str = Field(min_length=1)
+    buyer_phone: str = Field(min_length=5)
+    description: str | None = None
+    callback_url: str | None = None
+    expires_at: datetime | None = None
+
+
+class RazorpayPaymentLinkResult(BaseModel):
+    provider_link_id: str
+    payment_url: str
+    status: str
+    reference_id: str
+    amount_paise: int
+    currency: str
+
+
+class CapturedPaymentEvent(BaseModel):
+    provider_event_id: str
+    provider_payment_id: str
+    provider_order_id: str | None = None
+    amount_paise: int
+    currency: str
+    run_id: str
+    quote_id: str
+    paid_at: datetime
+    provider_link_id: str | None = None
+    event_type: str
+
+
+class WebhookProcessingResult(BaseModel):
+    accepted: bool = True
+    provider_event_id: str
+    provider_payment_id: str | None = None
+    run_id: str | None = None
+    quote_id: str | None = None
+
+
+def verify_razorpay_signature(raw_body: bytes, signature: str, webhook_secret: str) -> bool:
+    expected = hmac.new(webhook_secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
+def build_payment_link_payload(request: RazorpayPaymentLinkRequest) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "amount": request.amount_paise,
+        "currency": "INR",
+        "reference_id": f"{request.run_id}:{request.quote_id}",
+        "description": request.description or f"StockAware quote {request.run_id}",
+        "customer": {"name": request.buyer_name, "contact": request.buyer_phone},
+        "notify": {"sms": False, "email": False},
+        "notes": {"run_id": request.run_id, "quote_id": request.quote_id},
+    }
+    if request.callback_url:
+        payload.update(callback_url=request.callback_url, callback_method="get")
+    if request.expires_at:
+        payload["expire_by"] = int(request.expires_at.timestamp())
+    return payload
+
+
+async def create_payment_link(
+    *, client: httpx.AsyncClient, request: RazorpayPaymentLinkRequest, key_id: str, key_secret: str
+) -> RazorpayPaymentLinkResult:
+    response = await client.post(
+        RAZORPAY_PAYMENT_LINKS_URL,
+        json=build_payment_link_payload(request),
+        auth=(key_id, key_secret),
+    )
+    response.raise_for_status()
+    payload = response.json()
+    return RazorpayPaymentLinkResult(
+        provider_link_id=payload["id"],
+        payment_url=payload["short_url"],
+        status=payload["status"],
+        reference_id=payload["reference_id"],
+        amount_paise=payload["amount"],
+        currency=payload["currency"],
+    )
+
+
+def parse_captured_payment_event(event: dict[str, Any]) -> CapturedPaymentEvent:
+    if event.get("event") not in {"payment.captured", "payment_link.paid"}:
+        raise ValueError("Razorpay event is not captured")
+    entity = event.get("payload", {}).get("payment", {}).get("entity", {})
+    if entity.get("captured") is not True and entity.get("status") != "captured":
+        raise ValueError("Razorpay payment is not captured")
+    if entity.get("currency") != "INR":
+        raise ValueError("Razorpay payment currency must be INR")
+    notes = entity.get("notes") or {}
+    if not notes.get("run_id") or not notes.get("quote_id"):
+        raise ValueError("Razorpay payment notes must include run_id and quote_id")
+    created_at = entity.get("created_at")
+    return CapturedPaymentEvent(
+        provider_event_id=event["id"],
+        provider_payment_id=entity["id"],
+        provider_order_id=entity.get("order_id"),
+        amount_paise=entity["amount"],
+        currency="INR",
+        run_id=notes["run_id"],
+        quote_id=notes["quote_id"],
+        paid_at=datetime.fromtimestamp(created_at, UTC)
+        if isinstance(created_at, int)
+        else datetime.now(UTC),
+        provider_link_id=entity.get("payment_link_id"),
+        event_type=event["event"],
+    )
+
+
+def process_captured_payment_webhook(**_: Any) -> WebhookProcessingResult:
+    raise CommercialError(
+        503, "WEBHOOK_PROCESSING_UNAVAILABLE", "Captured-payment persistence is not configured."
+    )
