@@ -58,7 +58,7 @@ class ProductPatch(BaseModel):
 class BuyerIn(BaseModel):
     display_name: str
     whatsapp_e164: str | None = None
-    type: str = "lead"
+    is_customer: bool = False
     source: str | None = None
     legal_name: str | None = None
     billing_address: str | None = None
@@ -67,7 +67,7 @@ class BuyerIn(BaseModel):
 
 class BuyerPatch(BaseModel):
     display_name: str | None = None
-    type: str | None = None
+    is_customer: bool | None = None
     source: str | None = None
     last_contacted_at: datetime | None = None
     legal_name: str | None = None
@@ -118,7 +118,7 @@ def buyer_out(b):
             "legal_name",
             "billing_address",
             "gstin",
-            "type",
+            "is_customer",
             "source",
             "last_contacted_at",
             "created_at",
@@ -143,7 +143,7 @@ def summary(db: Db, user: CurrentUser):
         db.scalar(
             select(func.count())
             .select_from(Buyer)
-            .where(Buyer.business_id == b, Buyer.type == "lead")
+            .where(Buyer.business_id == b, Buyer.is_customer.is_(False))
         )
         or 0
     )
@@ -151,7 +151,7 @@ def summary(db: Db, user: CurrentUser):
         db.scalar(
             select(func.count())
             .select_from(Buyer)
-            .where(Buyer.business_id == b, Buyer.type == "customer")
+            .where(Buyer.business_id == b, Buyer.is_customer.is_(True))
         )
         or 0
     )
@@ -282,19 +282,15 @@ def delete_product(id: UUID, db: Db, user: CurrentUser):
 
 
 @router.get("/buyers")
-def buyers(
-    db: Db, user: CurrentUser, type: str | None = Query(default=None, pattern="^(lead|customer)$")
-):
+def buyers(db: Db, user: CurrentUser, is_customer: bool | None = Query(default=None)):
     q = select(Buyer).where(Buyer.business_id == user.business_id)
-    if type:
-        q = q.where(Buyer.type == type)
+    if is_customer is not None:
+        q = q.where(Buyer.is_customer.is_(is_customer))
     return [buyer_out(x) for x in db.scalars(q.order_by(Buyer.display_name))]
 
 
 @router.post("/buyers", status_code=201)
 def add_buyer(body: BuyerIn, db: Db, user: CurrentUser):
-    if body.type not in {"lead", "customer"}:
-        raise HTTPException(422, "type must be lead or customer")
     b = Buyer(business_id=user.business_id, **body.model_dump())
     db.add(b)
     db.commit()
@@ -306,15 +302,13 @@ def add_buyer(body: BuyerIn, db: Db, user: CurrentUser):
 def edit_buyer(id: UUID, body: BuyerPatch, db: Db, user: CurrentUser):
     b = one(db, Buyer, id, user.business_id)
     v = body.model_dump(exclude_unset=True)
-    if v.get("type") not in (None, "lead", "customer"):
-        raise HTTPException(422, "type must be lead or customer")
     for k, x in v.items():
         setattr(b, k, x)
     db.commit()
     return buyer_out(b)
 
 
-def _as_uuid(value: str | None) -> UUID | None:
+def _row_id(value: str | None) -> UUID | None:
     """Run.quote_id/payment_id/invoice_id may hold mock-pipeline string ids
     (e.g. "Q-1005-V1") rather than real commercial-schema UUIDs; treat those
     as "no linked record" instead of erroring the whole run list."""
@@ -322,29 +316,55 @@ def _as_uuid(value: str | None) -> UUID | None:
         return None
     try:
         return UUID(str(value))
-    except ValueError:
+    except (AttributeError, TypeError, ValueError):
         return None
 
 
+def _quote_for_run(db, business_id, run) -> Quote | None:
+    quote_id = _row_id(run.quote_id)
+    if quote_id is not None:
+        return db.scalar(
+            select(Quote).where(Quote.business_id == business_id, Quote.id == quote_id)
+        )
+    if not run.quote_id:
+        return None
+    return db.scalar(
+        select(Quote)
+        .where(Quote.business_id == business_id, Quote.run_id == run.run_id)
+        .order_by(Quote.quote_version.desc())
+    )
+
+
+def _payment_for_run(db, business_id, run) -> Payment | None:
+    payment_id = _row_id(run.payment_id)
+    if payment_id is not None:
+        return db.scalar(
+            select(Payment).where(Payment.business_id == business_id, Payment.id == payment_id)
+        )
+    if not run.payment_id:
+        return None
+    return db.scalar(
+        select(Payment).where(Payment.business_id == business_id, Payment.run_id == run.run_id)
+    )
+
+
+def _invoice_for_run(db, business_id, run) -> Invoice | None:
+    invoice_id = _row_id(run.invoice_id)
+    if invoice_id is not None:
+        return db.scalar(
+            select(Invoice).where(Invoice.business_id == business_id, Invoice.id == invoice_id)
+        )
+    if not run.invoice_id:
+        return None
+    return db.scalar(
+        select(Invoice).where(Invoice.business_id == business_id, Invoice.run_id == run.run_id)
+    )
+
+
 def run_out(db, r, b):
-    quote_id = _as_uuid(r.quote_id)
-    payment_id = _as_uuid(r.payment_id)
-    invoice_id = _as_uuid(r.invoice_id)
-    q = (
-        db.scalar(select(Quote).where(Quote.business_id == b, Quote.id == quote_id))
-        if quote_id
-        else None
-    )
-    p = (
-        db.scalar(select(Payment).where(Payment.business_id == b, Payment.id == payment_id))
-        if payment_id
-        else None
-    )
-    i = (
-        db.scalar(select(Invoice).where(Invoice.business_id == b, Invoice.id == invoice_id))
-        if invoice_id
-        else None
-    )
+    q = _quote_for_run(db, b, r)
+    p = _payment_for_run(db, b, r)
+    i = _invoice_for_run(db, b, r)
     return {
         "id": r.id,
         "run_id": r.run_id,

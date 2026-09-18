@@ -370,7 +370,7 @@ def seed_owner_dashboard(session: Session, business_id: UUID) -> None:
                     business_id=business_id,
                     display_name=name,
                     whatsapp_e164=phone,
-                    type=buyer_type,
+                    is_customer=buyer_type == "customer",
                     source=source,
                 )
             )

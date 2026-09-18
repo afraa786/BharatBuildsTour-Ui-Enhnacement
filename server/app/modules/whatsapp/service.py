@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
@@ -8,7 +9,12 @@ from app.core.config import get_settings
 from app.modules.runs import service as runs_service
 from app.modules.runs.intent_router import ActorType, route_message
 from app.modules.whatsapp import audio, client
-from app.modules.whatsapp.models import WhatsAppMessage
+from app.modules.whatsapp.dispatch import (
+    dispatch_inbound_message,
+    ensure_experience_handler_available,
+)
+from app.modules.whatsapp.models import WhatsAppMessage, WhatsAppMessageStatus
+from app.modules.whatsapp.routing import WhatsAppExperience, resolve_routing_context
 
 TEXTUAL_MESSAGE_TYPES = {
     "text",
@@ -133,6 +139,46 @@ def _extract_inbound_messages(payload: dict) -> Iterator[dict]:
                 }
 
 
+def _extract_status_events(payload: dict) -> Iterator[dict]:
+    for entry in payload.get("entry", []):
+        for change in entry.get("changes", []):
+            value = change.get("value", {})
+            phone_number_id = value.get("metadata", {}).get("phone_number_id")
+            for status_event in value.get("statuses", []):
+                provider_message_id = status_event.get("id")
+                status_value = status_event.get("status")
+                if not provider_message_id or status_value not in {
+                    "sent",
+                    "delivered",
+                    "read",
+                    "failed",
+                }:
+                    continue
+                occurred_at = None
+                try:
+                    occurred_at = datetime.fromtimestamp(int(status_event["timestamp"]), UTC)
+                except (KeyError, TypeError, ValueError, OverflowError):
+                    pass
+                yield {
+                    "provider_message_id": provider_message_id,
+                    "phone_number_id": phone_number_id,
+                    "recipient_wa_id": status_event.get("recipient_id"),
+                    "status": status_value,
+                    "occurred_at": occurred_at,
+                    "payload": status_event,
+                }
+
+
+def _log_status_event(db: Session, event: dict) -> bool:
+    try:
+        with db.begin_nested():
+            db.add(WhatsAppMessageStatus(**event))
+            db.flush()
+    except IntegrityError:
+        return False
+    return True
+
+
 def _log_message(
     db: Session,
     provider_message_id: str,
@@ -140,20 +186,23 @@ def _log_message(
     wa_id: str,
     phone_number_id: str | None,
     payload: dict,
+    business_id=None,
 ) -> bool:
     """Returns False if this provider_message_id was already logged (duplicate webhook)."""
-    entry = WhatsAppMessage(
-        provider_message_id=provider_message_id,
-        direction=direction,
-        wa_id=wa_id,
-        phone_number_id=phone_number_id,
-        payload=payload,
-    )
-    db.add(entry)
     try:
-        db.flush()
+        with db.begin_nested():
+            db.add(
+                WhatsAppMessage(
+                    provider_message_id=provider_message_id,
+                    direction=direction,
+                    wa_id=wa_id,
+                    phone_number_id=phone_number_id,
+                    business_id=business_id,
+                    payload=payload,
+                )
+            )
+            db.flush()
     except IntegrityError:
-        db.rollback()
         return False
     return True
 
@@ -188,11 +237,19 @@ def _non_text_acknowledgement(message: dict) -> str:
 
 async def handle_webhook_payload(db: Session, payload: dict) -> None:
     settings = get_settings()
+    for status_event in _extract_status_events(payload):
+        # Delivery callbacks are tenant-scoped by the same trusted receiving number.
+        context = resolve_routing_context(db, status_event["phone_number_id"])
+        _log_status_event(db, {**status_event, "business_id": context.business_id})
+    db.commit()
 
     for message in _extract_inbound_messages(payload):
         if not message["message_id"]:
             continue
 
+        # Resolve before any network or business action. Message content cannot influence this.
+        context = resolve_routing_context(db, message["phone_number_id"])
+        ensure_experience_handler_available(context)
         is_new = _log_message(
             db,
             provider_message_id=message["message_id"],
@@ -200,6 +257,7 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
             wa_id=message["wa_id"],
             phone_number_id=message["phone_number_id"],
             payload=message,
+            business_id=context.business_id,
         )
         if not is_new:
             continue
@@ -240,40 +298,69 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
             admin_wa_ids=settings.admin_wa_ids,
             vendor_wa_ids=settings.vendor_wa_ids,
         )
-        if message["type"] not in TEXTUAL_MESSAGE_TYPES and not message["text"]:
+        decision_actor = decision.actor
+        decision_intent = decision.intent
+        decision_actor_source = decision.actor_source
+        decision_matched_rule = decision.matched_rule
+        decision_requires_exact_run_id = decision.requires_exact_run_id
+        if (
+            context.experience is WhatsAppExperience.OWNER_MANAGER
+            and message["type"] not in TEXTUAL_MESSAGE_TYPES
+            and not message["text"]
+        ):
             outbound = [
                 runs_service.OutboundMessage(
                     to=message["wa_id"],
                     text=_non_text_acknowledgement(message),
                 )
             ]
-        elif is_admin_bot and not is_admin_sender:
-            outbound = [
-                runs_service.OutboundMessage(
-                    to=message["wa_id"],
-                    text=ADMIN_BOT_UNAUTHORIZED_TEXT,
-                )
-            ]
-            decision = route_message(
-                message["text"],
-                actor_hint=ActorType.ADMIN,
-                wa_id=message["wa_id"],
-            )
-        elif is_admin_sender or decision.actor is ActorType.ADMIN:
-            outbound = runs_service.process_admin_message(
-                db, message["wa_id"], message["text"], phone_number_id=message["phone_number_id"]
-            )
-        elif decision.actor is ActorType.VENDOR:
-            outbound = runs_service.process_vendor_message(db, message["wa_id"], message["text"])
         else:
-            outbound = runs_service.process_buyer_message(
-                db,
-                message["wa_id"],
-                message["text"],
-                phone_number_id=message["phone_number_id"],
-                interactive_reply_id=message.get("interactive_reply_id"),
-                business_id=business_id,
-            )
+            if context.experience is WhatsAppExperience.CUSTOMER_COMMERCE:
+                outbound = dispatch_inbound_message(
+                    db,
+                    context,
+                    message,
+                    admin_wa_ids=settings.admin_wa_ids,
+                    vendor_wa_ids=settings.vendor_wa_ids,
+                )
+            elif is_admin_bot and not is_admin_sender:
+                outbound = [
+                    runs_service.OutboundMessage(
+                        to=message["wa_id"],
+                        text=ADMIN_BOT_UNAUTHORIZED_TEXT,
+                    )
+                ]
+                decision = route_message(
+                    message["text"],
+                    actor_hint=ActorType.ADMIN,
+                    wa_id=message["wa_id"],
+                )
+                decision_actor = decision.actor
+                decision_intent = decision.intent
+                decision_actor_source = decision.actor_source
+                decision_matched_rule = decision.matched_rule
+                decision_requires_exact_run_id = decision.requires_exact_run_id
+            elif is_admin_sender or decision.actor is ActorType.ADMIN:
+                outbound = runs_service.process_admin_message(
+                    db,
+                    message["wa_id"],
+                    message["text"],
+                    phone_number_id=message["phone_number_id"],
+                )
+            elif decision.actor is ActorType.VENDOR:
+                outbound = runs_service.process_vendor_message(
+                    db, message["wa_id"], message["text"]
+                )
+            else:
+                outbound = runs_service.process_buyer_message(
+                    db,
+                    message["wa_id"],
+                    message["text"],
+                    phone_number_id=message["phone_number_id"],
+                    interactive_reply_id=message.get("interactive_reply_id"),
+                    business_id=business_id,
+                )
+
         db.commit()
 
         for out_message in outbound:
@@ -320,15 +407,18 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
                 direction="out",
                 wa_id=out_message.to,
                 phone_number_id=message["phone_number_id"],
+                business_id=context.business_id,
                 payload={
                     "text": out_message.text,
                     "message_type": send_kwargs["message_type"],
                     "sent_as_audio": sent_as_audio,
-                    "actor": decision.actor.value,
-                    "intent": decision.intent.value,
-                    "actor_source": decision.actor_source,
-                    "matched_rule": decision.matched_rule,
-                    "requires_exact_run_id": decision.requires_exact_run_id,
+                    "actor": decision_actor.value,
+                    "intent": decision_intent.value,
+                    "actor_source": decision_actor_source,
+                    "matched_rule": decision_matched_rule,
+                    "requires_exact_run_id": decision_requires_exact_run_id,
+                    "business_id": str(context.business_id),
+                    "experience": context.experience.value,
                 },
             )
         db.commit()

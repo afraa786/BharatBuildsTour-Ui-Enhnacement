@@ -42,7 +42,7 @@ def invoice_context(payment_context, pg_session: Session, monkeypatch, tmp_path)
             id=buyer_id,
             business_id=DEMO_BUSINESS_ID,
             display_name="Demo Buyer",
-            whatsapp_e164="+919876543210",
+            whatsapp_e164=f"+91{buyer_id.int % 10**10:010d}",
             legal_name="Demo Buyer Legal",
             billing_address="Demo Buyer Address",
         )
@@ -71,7 +71,7 @@ def invoice_context(payment_context, pg_session: Session, monkeypatch, tmp_path)
             quote_id=quote.quote_id,
             quote_version=1,
             acceptance_id="phase5-acceptance",
-            buyer_whatsapp_e164="+919876543210",
+            buyer_whatsapp_e164=f"+91{buyer_id.int % 10**10:010d}",
             source_message_id="wamid-phase5",
             channel="whatsapp",
             accepted_at=datetime.now(UTC),

@@ -36,7 +36,7 @@ def quote_client(pg_session: Session) -> Iterator[tuple[TestClient, UUID, UUID]]
             id=buyer_id,
             business_id=DEMO_BUSINESS_ID,
             display_name="Phase 3 Test Buyer",
-            whatsapp_e164="+919876543210",
+            whatsapp_e164=f"+91{buyer_id.int % 10**10:010d}",
         )
     )
     product_id = pg_session.scalar(
@@ -200,7 +200,7 @@ def test_quote_evidence_exact_version_and_expiry(quote_client, pg_session: Sessi
         quote_id=evidence.quote_id,
         quote_version=1,
         acceptance_id="acceptance-1",
-        buyer_whatsapp_e164="+919876543210",
+        buyer_whatsapp_e164=f"+91{buyer_id.int % 10**10:010d}",
         source_message_id="wamid-1",
         channel="whatsapp",
         accepted_at=datetime.now(UTC),

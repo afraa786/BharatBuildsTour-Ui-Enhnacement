@@ -48,6 +48,30 @@ def get_products(
     ]
 
 
+def search_products(session: Session, business_id: UUID, query: str) -> list[ProductOut]:
+    """
+    Search for active products by loosely matching on SKU, name, or alias.
+    """
+    if not query.strip():
+        return []
+    products = repository.fuzzy_match_candidates(session, business_id, query)
+    return [
+        ProductOut(
+            product_id=product.id,
+            sku=product.sku,
+            name=product.name,
+            sellable_unit=product.sellable_unit,
+            stock_unit=product.stock_unit,
+            pack_size=product.pack_size,
+            indivisible=product.indivisible,
+            base_unit_price_paise=product.base_unit_price_paise,
+            gst_rate_bps=product.gst_rate_bps,
+            active=product.active,
+        )
+        for product in products
+    ]
+
+
 def match_product(session: Session, business_id: UUID, request: CatalogMatchIn) -> CatalogMatchOut:
     normalized_query = normalize_catalog_text(request.requested_text)
     if not normalized_query:

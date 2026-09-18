@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     whatsapp_test_phone_number_id: str = ""
     whatsapp_test_access_token: SecretStr = SecretStr("")
     whatsapp_test_verify_token: str = ""
+    # Meta signs webhook POSTs with this application secret using
+    # X-Hub-Signature-256. It is intentionally distinct from per-number tokens.
+    whatsapp_app_secret: SecretStr = SecretStr("")
     admin_whatsapp_numbers: str = ""
     admin_whatsapp_phone_number_ids: str = ""
     whatsapp_phone_number_business_ids: str = ""

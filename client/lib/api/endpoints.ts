@@ -406,7 +406,7 @@ export interface OwnerProduct {
   stock_qty: number; active: boolean; sellable_unit: string; stock_unit: string; pack_size: number
 }
 export interface OwnerBuyer {
-  id: string; display_name: string; whatsapp_e164: string | null; type: 'lead' | 'customer'
+  id: string; display_name: string; whatsapp_e164: string | null; is_customer: boolean
   source: string | null; last_contacted_at: string | null; created_at: string
 }
 export interface OwnerRun {
@@ -456,10 +456,10 @@ export function ownerEditProduct(id: string, body: Partial<OwnerProductInput>): 
 export function ownerDeleteProduct(id: string): Promise<void> {
   return apiFetch(`/products/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
-export function ownerBuyers(type?: 'lead' | 'customer'): Promise<OwnerBuyer[]> {
-  return apiGet(`/buyers${type ? `?type=${type}` : ''}`)
+export function ownerBuyers(isCustomer?: boolean): Promise<OwnerBuyer[]> {
+  return apiGet('/buyers' + (isCustomer === undefined ? '' : '?is_customer=' + isCustomer))
 }
-export function ownerCreateBuyer(body: { display_name: string; whatsapp_e164?: string; type: 'lead' | 'customer' }): Promise<OwnerBuyer> {
+export function ownerCreateBuyer(body: { display_name: string; whatsapp_e164?: string; is_customer: boolean }): Promise<OwnerBuyer> {
   return apiPost('/buyers', body)
 }
 export function ownerEditBuyer(id: string, body: Partial<OwnerBuyer>): Promise<OwnerBuyer> {
