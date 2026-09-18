@@ -41,6 +41,7 @@ resource "aws_iam_role_policy" "execution_ssm" {
         aws_ssm_parameter.whatsapp_test_access_token.arn,
         aws_ssm_parameter.whatsapp_test_verify_token.arn,
         aws_ssm_parameter.openai_api_key.arn,
+        aws_ssm_parameter.jwt_secret.arn,
       ], var.internal_service_token_ssm_arn == "" ? [] : [var.internal_service_token_ssm_arn])
     }]
   })
@@ -61,6 +62,7 @@ resource "aws_iam_role" "task" {
 
 locals {
   server_image = "${aws_ecr_repository.server.repository_url}:latest"
+  client_image = "${aws_ecr_repository.client.repository_url}:latest"
 
   common_environment = [
     { name = "ENVIRONMENT", value = "production" },
@@ -84,6 +86,7 @@ locals {
     { name = "WHATSAPP_TEST_ACCESS_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_test_access_token.arn },
     { name = "WHATSAPP_TEST_VERIFY_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_test_verify_token.arn },
     { name = "OPENAI_API_KEY", valueFrom = aws_ssm_parameter.openai_api_key.arn },
+    { name = "JWT_SECRET", valueFrom = aws_ssm_parameter.jwt_secret.arn },
     ], var.internal_service_token_ssm_arn == "" ? [] : [{
       name      = "INTERNAL_SERVICE_TOKEN"
       valueFrom = var.internal_service_token_ssm_arn
@@ -169,4 +172,60 @@ resource "aws_ecs_service" "server" {
   }
 
   depends_on = [aws_lb_listener.http]
+}
+
+# Owner dashboard / agent-office. NEXT_PUBLIC_* values are baked in at image
+# build time (see client/Dockerfile ARG), not set here as runtime env vars.
+resource "aws_ecs_task_definition" "client" {
+  family                   = "${var.project}-client"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = var.task_cpu
+  memory                   = var.task_memory
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  container_definitions = jsonencode([{
+    name      = "client"
+    image     = local.client_image
+    essential = true
+    portMappings = [{
+      containerPort = var.client_container_port
+      protocol      = "tcp"
+    }]
+    environment = [
+      { name = "PORT", value = tostring(var.client_container_port) },
+      { name = "HOSTNAME", value = "0.0.0.0" },
+    ]
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.client.name
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "client"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "client" {
+  name            = "${var.project}-client"
+  cluster         = aws_ecs_cluster.app.id
+  task_definition = aws_ecs_task_definition.client.arn
+  desired_count   = var.desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = local.multi_az_subnet_ids
+    security_groups  = [aws_security_group.ecs_service.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.client.arn
+    container_name   = "client"
+    container_port   = var.client_container_port
+  }
+
+  depends_on = [aws_lb_listener_rule.client]
 }

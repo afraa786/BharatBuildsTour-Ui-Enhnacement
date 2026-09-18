@@ -10,12 +10,24 @@ output "ecr_repository_url" {
   value = aws_ecr_repository.server.repository_url
 }
 
+output "client_ecr_repository_url" {
+  value = aws_ecr_repository.client.repository_url
+}
+
 output "ecs_cluster_name" {
   value = aws_ecs_cluster.app.name
 }
 
 output "ecs_service_name" {
   value = aws_ecs_service.server.name
+}
+
+output "client_ecs_service_name" {
+  value = aws_ecs_service.client.name
+}
+
+output "client_url" {
+  value = "https://${var.client_domain}"
 }
 
 output "migrate_task_definition_arn" {

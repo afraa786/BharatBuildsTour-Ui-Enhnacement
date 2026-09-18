@@ -18,6 +18,23 @@ variable "container_port" {
   default = 8000
 }
 
+variable "client_container_port" {
+  type    = number
+  default = 3000
+}
+
+variable "client_domain" {
+  description = "Hostname the owner dashboard/agent-office is served from."
+  type        = string
+  default     = "app.stockaware.vaaani.co.in"
+}
+
+variable "client_api_base_url" {
+  description = "Backend origin baked into the client build (NEXT_PUBLIC_API_BASE_URL)."
+  type        = string
+  default     = "https://stockaware.vaaani.co.in"
+}
+
 variable "task_cpu" {
   type    = number
   default = 256
@@ -124,5 +141,10 @@ variable "cors_origins" {
 variable "openai_api_key" {
   type      = string
   default   = ""
+  sensitive = true
+}
+
+variable "jwt_secret" {
+  type      = string
   sensitive = true
 }

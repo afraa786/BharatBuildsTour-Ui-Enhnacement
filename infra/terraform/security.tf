@@ -40,6 +40,14 @@ resource "aws_security_group" "ecs_service" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  ingress {
+    description     = "From ALB only (client)"
+    from_port       = var.client_container_port
+    to_port         = var.client_container_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -67,6 +75,16 @@ resource "aws_security_group" "rds" {
     to_port     = 5432
     protocol    = "tcp"
     cidr_blocks = [var.my_ip_cidr]
+  }
+
+  # Live EC2 instance not managed by this config (see the `hermes_*` outputs).
+  # Restated here so plans stop proposing to revoke its DB access.
+  ingress {
+    description     = "From hermes EC2"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = ["sg-0751de06ede152c82"]
   }
 
   egress {

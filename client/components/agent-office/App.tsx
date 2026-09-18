@@ -114,23 +114,6 @@ function computePath(
 // Roles that go to the filing cabinet instead of their desk (browsing codebase)
 const FILING_ROLES = new Set(['Explore', 'general-purpose'])
 
-interface AgentChatFeedMessage {
-  id?: string
-  agentId?: string
-  sender?: string
-  role?: string
-  text: string
-  timestamp?: string
-  channel?: string
-  type?: 'message' | 'system'
-}
-
-interface AgentChatFeed {
-  version: number
-  channel?: string
-  messages: AgentChatFeedMessage[]
-}
-
 const USE_MOCK_AGENT_SIMULATION = process.env.NEXT_PUBLIC_AGENT_SIMULATION_MOCK !== 'false'
 
 for (const profile of agentSimulationConfig.agents) {
@@ -566,49 +549,6 @@ const App: React.FC = () => {
       isSystem,
       reactions: undefined,
     }])
-  }, [])
-
-  // Load a durable chat snapshot before live WebSocket messages arrive.
-  // Replace this public JSON with an API route when the production chat service is ready.
-  useEffect(() => {
-    let cancelled = false
-
-    fetch('/agent-office-chats.json')
-      .then(response => response.ok ? response.json() as Promise<AgentChatFeed> : null)
-      .then(feed => {
-        if (cancelled || !feed || feed.version !== 1 || !Array.isArray(feed.messages)) return
-
-        const seeded = feed.messages
-          .filter(message => typeof message.text === 'string' && message.text.trim().length > 0)
-          .slice(-50)
-          .map(message => {
-            const role = message.role ?? 'default'
-            const config = AGENT_CONFIGS[role] ?? AGENT_CONFIGS.default
-            const parsedTimestamp = message.timestamp ? new Date(message.timestamp) : null
-            const timestamp = parsedTimestamp && !Number.isNaN(parsedTimestamp.valueOf())
-              ? parsedTimestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-              : timeNow()
-
-            return {
-              id: makeMsgId(),
-              sender: message.sender ?? config.title,
-              senderSprite: role,
-              senderColor: config.color,
-              text: message.text.trim(),
-              channel: message.channel ?? feed.channel ?? 'office-general',
-              timestamp,
-              isSystem: message.type === 'system',
-              reactions: undefined,
-            }
-          })
-
-        setMessages(previous => [...seeded, ...previous].slice(-50))
-      })
-      .catch(() => {
-        // The live WebSocket remains the source of truth if the seed feed is unavailable.
-      })
-
-    return () => { cancelled = true }
   }, [])
 
   // ---------------------------------------------------------------------------
@@ -1091,10 +1031,12 @@ const App: React.FC = () => {
           status: visualEvent.status,
           text: visualEvent.text,
         })
+        const config = AGENT_CONFIGS[visualEvent.toAgent] ?? AGENT_CONFIGS.default
+        addMsg(config.title, visualEvent.toAgent, config.color, visualEvent.text)
       }, scheduled.delayMs + 1800)
       pendingTimersRef.current.push(timer)
     })
-  }, [handleEvent])
+  }, [handleEvent, addMsg])
 
   useEffect(() => {
     if (!USE_MOCK_AGENT_SIMULATION || isSimMode) return

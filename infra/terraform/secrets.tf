@@ -36,3 +36,9 @@ resource "aws_ssm_parameter" "openai_api_key" {
   type  = "SecureString"
   value = var.openai_api_key == "" ? "unset" : var.openai_api_key
 }
+
+resource "aws_ssm_parameter" "jwt_secret" {
+  name  = "/${var.project}/jwt_secret"
+  type  = "SecureString"
+  value = var.jwt_secret
+}
