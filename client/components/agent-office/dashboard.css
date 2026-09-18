@@ -1,0 +1,70 @@
+.dashboard-office-section {
+  margin: 22px 0;
+  overflow: hidden;
+  border: 1px solid #ffffff14;
+  border-radius: 18px;
+  background: #070b10;
+  box-shadow: 0 20px 55px #00000025;
+}
+
+.dashboard-office-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid #ffffff0d;
+  background: #0b1119;
+}
+
+.dashboard-office-heading h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 20px;
+  letter-spacing: -0.04em;
+}
+
+.dashboard-office-heading p:not(.eyebrow) {
+  margin: 5px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.dashboard-office-section .app-wrapper {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: 100%;
+  height: min(682px, 70vh);
+  min-height: 500px;
+  transform: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .dashboard-office-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-office-section .app-wrapper {
+    height: 620px;
+  }
+
+  .dashboard-office-section .slack-panel {
+    width: 260px;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard-office-section .app-wrapper {
+    height: 560px;
+    min-height: 0;
+  }
+
+  .dashboard-office-section .slack-panel {
+    display: none;
+  }
+}

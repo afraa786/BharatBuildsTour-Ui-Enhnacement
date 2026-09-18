@@ -16,14 +16,23 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  ArrowUpRight,
   Check,
   ChevronDown,
   CircleDot,
+  Clock3,
   FileText,
+  Gauge,
+  MoreHorizontal,
   Package,
   Plus,
+  Radio,
   Search,
+  ShieldCheck,
+  TrendingUp,
+  Users,
   Wallet,
+  Workflow,
   Zap,
 } from 'lucide-react'
 import {
@@ -37,6 +46,7 @@ import {
   PageHeader,
   StatusPill,
 } from './stockaware'
+import AgentOffice from './agent-office/App'
 import {
   approveRun,
   createPaymentLink,
@@ -66,6 +76,7 @@ import type {
 } from '@/lib/api/types'
 import { useApiAction, useApiResource } from '@/lib/hooks/use-api'
 import { BUSINESS_ID } from '@/lib/config'
+import './dashboard-premium.css'
 import {
   formatCount,
   formatDateTime,
@@ -414,10 +425,25 @@ export function DashboardView() {
     />
   )
 
+  const officeSection = (
+    <section className="dashboard-office-section">
+      <div className="dashboard-office-heading">
+        <div>
+          <p className="eyebrow">AGENT WORKSPACE · LIVE</p>
+          <h2>Claude Office</h2>
+          <p>Watch your digital team coordinate work in real time.</p>
+        </div>
+        <span className="status-pill green"><span className="size-1.5 rounded-full bg-current" />Agents online</span>
+      </div>
+      <AgentOffice />
+    </section>
+  )
+
   if (resource.status !== 'ready' && resource.status !== 'empty') {
     return (
       <AdminShell>
         {header}
+        {officeSection}
         <StateBlock
           loading={resource.status === 'loading'}
           errorMessage={resource.error?.message}
@@ -428,7 +454,9 @@ export function DashboardView() {
   }
 
   const data = resource.data
-  if (!data) return null
+  if (!data) {
+    return <AdminShell>{header}{officeSection}</AdminShell>
+  }
 
   const approvals = data.runs.filter((run) => run.status === 'APPROVAL_PENDING')
   const openRuns = data.runs.filter((run) => isOpenRun(run.status))
@@ -463,10 +491,27 @@ export function DashboardView() {
         ? 'API · checking'
         : 'API · unreachable'
 
+  const activeAgents = 6
+  const attentionCount = approvals.length + lowStock.length
+  const workflowRate = openRuns.length > 0
+    ? Math.max(0, Math.min(99, Math.round(((openRuns.length - approvals.length) / openRuns.length) * 100)))
+    : 100
+
   return (
     <AdminShell>
       {header}
-      <div className="metrics-grid">
+      <section className="dashboard-intro">
+        <div>
+          <div className="dashboard-live-line"><span className="dashboard-live-dot" /> COMMAND CENTER <span>/</span> {healthLabel}</div>
+          <h2>Your operation, in motion.</h2>
+          <p>Monitor agent decisions, customer demand, and the moments that need your attention.</p>
+        </div>
+        <div className="dashboard-intro-actions">
+          <span className="dashboard-date"><Clock3 /> Monday, 17 September 2026</span>
+          <Link href="/runs" className="dashboard-text-link">View all runs <ArrowUpRight /></Link>
+        </div>
+      </section>
+      <div className="metrics-grid dashboard-metrics-grid">
         <Metric
           label="Pending approvals"
           value={formatCount(approvals.length)}
@@ -492,8 +537,32 @@ export function DashboardView() {
           icon={Zap}
         />
       </div>
+      <div className="dashboard-signal-strip">
+        <div><Radio /><span><b>Live orchestration</b><small>Agents are coordinating across {formatCount(openRuns.length)} open workflows</small></span></div>
+        <div><ShieldCheck /><span><b>Policy guardrails active</b><small>Every pricing exception requires owner review</small></span></div>
+        <div><Gauge /><span><b>{workflowRate}% workflow health</b><small>Based on current run throughput</small></span></div>
+      </div>
+      <div className="dashboard-workspace-grid">
+        <div className="dashboard-office-wrap">{officeSection}</div>
+        <aside className="dashboard-command-rail">
+          <div className="dashboard-rail-heading">
+            <div><p className="eyebrow">OPERATING PULSE</p><h3>Today at a glance</h3></div>
+            <button className="dashboard-icon-button" aria-label="More dashboard options"><MoreHorizontal /></button>
+          </div>
+          <div className="pulse-summary"><strong>{formatCount(attentionCount)}</strong><span>items need attention</span><div className="pulse-bar"><i style={{ width: `${Math.min(100, attentionCount * 12)}%` }} /></div><small>{approvals.length > 0 ? `${formatCount(approvals.length)} approval decisions are waiting` : 'No approval decisions waiting'}</small></div>
+          <div className="pulse-list">
+            <div><span className="pulse-icon pulse-icon-cyan"><Users /></span><span><b>Agent team</b><small>{activeAgents} agents active · 1 manager</small></span><em>LIVE</em></div>
+            <div><span className="pulse-icon pulse-icon-amber"><Workflow /></span><span><b>Open workflows</b><small>{formatCount(openRuns.length)} requests in motion</small></span><em>{formatCount(openRuns.length)}</em></div>
+            <div><span className="pulse-icon pulse-icon-green"><TrendingUp /></span><span><b>Collection watch</b><small>{formatCount(pendingPayments.length)} payments awaiting confirmation</small></span><em>{formatCount(pendingPayments.length)}</em></div>
+          </div>
+          <Link href="/approvals" className="dashboard-rail-link">Open attention queue <ArrowRight /></Link>
+        </aside>
+      </div>
       <div className="dashboard-grid">
-        <CommandCenter />
+        <section className="dashboard-panel dashboard-panel-flow">
+          <div className="dashboard-panel-header"><div><p className="eyebrow">WORKFLOW MAP</p><h3>Where work is moving</h3></div><Link href="/runs" className="dashboard-text-link">Open runs <ArrowUpRight /></Link></div>
+          <CommandCenter />
+        </section>
         <div className="rail">
           <div className="rail-card">
             <div className="flex justify-between">
@@ -529,12 +598,12 @@ export function DashboardView() {
         </div>
       </div>
       <div className="lower-grid">
-        <div className="panel">
-          <h3>Live activity</h3>
+        <div className="panel dashboard-data-panel">
+          <div className="dashboard-panel-header"><div><p className="eyebrow">EVENT STREAM</p><h3>Live activity</h3></div><span className="dashboard-mini-status"><i /> Updating now</span></div>
           <LiveTimeline events={data.events} limit={6} />
         </div>
-        <div className="panel">
-          <h3>Low stock radar</h3>
+        <div className="panel dashboard-data-panel">
+          <div className="dashboard-panel-header"><div><p className="eyebrow">INVENTORY SIGNAL</p><h3>Low stock radar</h3></div><Package className="dashboard-panel-icon" /></div>
           <div className="flex items-center gap-5 py-5">
             <div className="grid size-24 place-items-center rounded-full border-[10px] border-amber-400/30 border-t-amber-400 text-2xl font-semibold">
               {formatCount(lowStock.length)}
@@ -550,8 +619,8 @@ export function DashboardView() {
             </div>
           </div>
         </div>
-        <div className="panel">
-          <h3>Latest invoice</h3>
+        <div className="panel dashboard-data-panel">
+          <div className="dashboard-panel-header"><div><p className="eyebrow">REVENUE OPERATIONS</p><h3>Latest invoice</h3></div><FileText className="dashboard-panel-icon" /></div>
           {latestInvoice ? (
             <>
               <div className="mt-3 flex items-center justify-between">
