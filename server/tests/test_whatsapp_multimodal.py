@@ -1,5 +1,58 @@
+import pytest
+
+from app.core.config import get_settings
 from app.modules.whatsapp import client
-from app.modules.whatsapp.service import _extract_inbound_messages
+from app.modules.whatsapp.service import (
+    ADMIN_BOT_UNAUTHORIZED_TEXT,
+    _extract_inbound_messages,
+    handle_webhook_payload,
+)
+
+
+class FakeDb:
+    def add(self, entry):
+        pass
+
+    def flush(self):
+        pass
+
+    def commit(self):
+        pass
+
+    def rollback(self):
+        pass
+
+
+def _single_text_payload(*, phone_number_id: str, wa_id: str, text: str) -> dict:
+    return {
+        "entry": [
+            {
+                "changes": [
+                    {
+                        "value": {
+                            "metadata": {"phone_number_id": phone_number_id},
+                            "contacts": [{"wa_id": wa_id, "profile": {"name": "Sender"}}],
+                            "messages": [
+                                {
+                                    "from": wa_id,
+                                    "id": f"wamid.{wa_id}",
+                                    "type": "text",
+                                    "text": {"body": text},
+                                }
+                            ],
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+
+
+@pytest.fixture(autouse=True)
+def _clear_settings_cache():
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 def test_extract_inbound_messages_supports_multiple_whatsapp_types() -> None:
@@ -138,3 +191,62 @@ def test_build_message_payload_supports_audio_document_and_location() -> None:
     assert document_payload["document"]["caption"] == "Invoice ready"
     assert location_payload["location"]["latitude"] == 12.97
     assert location_payload["location"]["name"] == "Warehouse"
+
+
+@pytest.mark.anyio
+async def test_admin_bot_rejects_non_admin_order_flow(monkeypatch) -> None:
+    monkeypatch.setenv("ADMIN_WHATSAPP_PHONE_NUMBER_IDS", "admin-pn")
+    monkeypatch.setenv("ADMIN_WHATSAPP_NUMBERS", "owner-1")
+    get_settings.cache_clear()
+    sent: list[dict] = []
+
+    async def fake_mark_read(message_id, phone_number_id):
+        pass
+
+    async def fake_send_message(**kwargs):
+        sent.append(kwargs)
+
+    monkeypatch.setattr(client, "mark_read_with_typing", fake_mark_read)
+    monkeypatch.setattr(client, "send_message", fake_send_message)
+
+    await handle_webhook_payload(
+        FakeDb(),
+        _single_text_payload(
+            phone_number_id="admin-pn",
+            wa_id="buyer-1",
+            text="order 20 led bulbs",
+        ),
+    )
+
+    assert sent[0]["to"] == "buyer-1"
+    assert sent[0]["text"] == ADMIN_BOT_UNAUTHORIZED_TEXT
+
+
+@pytest.mark.anyio
+async def test_admin_bot_admin_sender_stays_manager_scoped(monkeypatch) -> None:
+    monkeypatch.setenv("ADMIN_WHATSAPP_PHONE_NUMBER_IDS", "admin-pn")
+    monkeypatch.setenv("ADMIN_WHATSAPP_NUMBERS", "owner-1")
+    get_settings.cache_clear()
+    sent: list[dict] = []
+
+    async def fake_mark_read(message_id, phone_number_id):
+        pass
+
+    async def fake_send_message(**kwargs):
+        sent.append(kwargs)
+
+    monkeypatch.setattr(client, "mark_read_with_typing", fake_mark_read)
+    monkeypatch.setattr(client, "send_message", fake_send_message)
+
+    await handle_webhook_payload(
+        FakeDb(),
+        _single_text_payload(
+            phone_number_id="admin-pn",
+            wa_id="owner-1",
+            text="order 20 led bulbs",
+        ),
+    )
+
+    assert sent[0]["to"] == "owner-1"
+    assert "StockAware Manager" in sent[0]["text"]
+    assert "don't place buyer orders" in sent[0]["text"]

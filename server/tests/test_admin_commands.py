@@ -41,6 +41,15 @@ def test_casual_yes_does_not_approve_anything() -> None:
     assert "rfq-" not in lowered
 
 
+def test_admin_order_like_message_stays_manager_scoped() -> None:
+    outbound = process_admin_message(
+        db=None, admin_wa_id="admin", text_body="order 20 led bulbs for tomorrow"
+    )
+    assert len(outbound) == 1
+    assert "StockAware Manager" in outbound[0].text
+    assert "don't place buyer orders" in outbound[0].text
+
+
 def test_casual_ok_prompts_for_exact_run_id() -> None:
     outbound = process_admin_message(db=None, admin_wa_id="admin", text_body="ok approve it")
     assert "exact RFQ ID" in outbound[0].text

@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     whatsapp_test_access_token: SecretStr = SecretStr("")
     whatsapp_test_verify_token: str = ""
     admin_whatsapp_numbers: str = ""
+    admin_whatsapp_phone_number_ids: str = ""
     vendor_whatsapp_numbers: str = ""
     razorpay_key_id: str = ""
     razorpay_key_secret: SecretStr = SecretStr("")
@@ -54,6 +55,12 @@ class Settings(BaseSettings):
     @property
     def admin_wa_ids(self) -> set[str]:
         return {n.strip() for n in self.admin_whatsapp_numbers.split(",") if n.strip()}
+
+    @property
+    def admin_phone_number_ids(self) -> set[str]:
+        return {
+            n.strip() for n in self.admin_whatsapp_phone_number_ids.split(",") if n.strip()
+        }
 
     @property
     def vendor_wa_ids(self) -> set[str]:

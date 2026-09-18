@@ -19,6 +19,11 @@ TEXTUAL_MESSAGE_TYPES = {
     "document",
 }
 
+ADMIN_BOT_UNAUTHORIZED_TEXT = (
+    "This is the StockAware Manager line for the owner/admin team. "
+    "Please message the customer ordering number for quotes or orders."
+)
+
 
 def _detect_requested_output_mode(text: str) -> str | None:
     normalized = text.casefold().strip()
@@ -217,13 +222,17 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
                             message["requested_output_mode"] or "audio"
                         )
 
+        is_admin_sender = message["wa_id"] in settings.admin_wa_ids
+        is_vendor_sender = message["wa_id"] in settings.vendor_wa_ids
+        is_admin_bot = message["phone_number_id"] in settings.admin_phone_number_ids
+
         decision = route_message(
             message["text"],
             actor_hint=(
                 ActorType.ADMIN
-                if message["wa_id"] in settings.admin_wa_ids
+                if is_admin_sender
                 else ActorType.VENDOR
-                if message["wa_id"] in settings.vendor_wa_ids
+                if is_vendor_sender
                 else None
             ),
             wa_id=message["wa_id"],
@@ -237,7 +246,19 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
                     text=_non_text_acknowledgement(message),
                 )
             ]
-        elif decision.actor is ActorType.ADMIN:
+        elif is_admin_bot and not is_admin_sender:
+            outbound = [
+                runs_service.OutboundMessage(
+                    to=message["wa_id"],
+                    text=ADMIN_BOT_UNAUTHORIZED_TEXT,
+                )
+            ]
+            decision = route_message(
+                message["text"],
+                actor_hint=ActorType.ADMIN,
+                wa_id=message["wa_id"],
+            )
+        elif is_admin_sender or decision.actor is ActorType.ADMIN:
             outbound = runs_service.process_admin_message(
                 db, message["wa_id"], message["text"], phone_number_id=message["phone_number_id"]
             )

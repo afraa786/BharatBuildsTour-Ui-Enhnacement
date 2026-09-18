@@ -46,6 +46,23 @@ HELP_TEXT = (
     "show, payment link, invoice, open quotes, pending payments, or low stock."
 )
 
+ADMIN_MANAGER_SCOPE_TEXT = (
+    "I'm your StockAware Manager for admin and operations. I don't place buyer orders from this "
+    "line. I can show runs, pending payments, low stock, daily summary, or take exact commands "
+    "like Approve RFQ-1042, Send payment link RFQ-1042, or Send invoice RFQ-1042."
+)
+
+ADMIN_DISALLOWED_BUYER_INTENTS = {
+    IntentType.REQUEST_ORDER,
+    IntentType.REQUEST_QUOTE,
+    IntentType.ACCEPT_QUOTE,
+    IntentType.CHANGE_REQUEST,
+    IntentType.NEGOTIATE_PRICE,
+    IntentType.REQUEST_PAYMENT_LINK,
+    IntentType.REQUEST_INVOICE,
+    IntentType.DELIVERY_QUERY,
+}
+
 
 @dataclass
 class OutboundMessage:
@@ -629,6 +646,7 @@ def process_admin_message(
 ) -> list[OutboundMessage]:
     stripped = text_body.strip()
     decision = route_message(stripped, actor_hint=ActorType.ADMIN, wa_id=admin_wa_id)
+    buyer_decision = route_message(stripped, actor_hint=ActorType.BUYER)
 
     if m := _APPROVE_RE.match(stripped):
         if db is None:
@@ -737,6 +755,8 @@ def process_admin_message(
                 "Try: Reject RFQ-1042.",
             )
         ]
+    if buyer_decision.intent in ADMIN_DISALLOWED_BUYER_INTENTS:
+        return [OutboundMessage(admin_wa_id, ADMIN_MANAGER_SCOPE_TEXT)]
     if decision.intent is IntentType.IMPORTANT_UPDATES:
         return [OutboundMessage(admin_wa_id, _important_updates_text(db))]
 
