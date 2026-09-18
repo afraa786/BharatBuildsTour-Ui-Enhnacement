@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 
-from app.api.routes.demo import router as demo_router
 from app.api.routes.health import router as health_router
 from app.modules.catalog.routes import router as catalog_router
 from app.modules.inventory.routes import router as inventory_router
@@ -19,4 +18,3 @@ router.include_router(payments_router)
 router.include_router(invoices_router)
 router.include_router(whatsapp_router)
 router.include_router(runs_router)
-router.include_router(demo_router)

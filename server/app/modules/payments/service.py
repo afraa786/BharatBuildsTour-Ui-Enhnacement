@@ -15,7 +15,7 @@ from app.core.config import get_settings
 from app.db.session import transaction_session
 from app.modules.inventory.models import Inventory
 from app.modules.payments import repository
-from app.modules.payments.models import Payment, PaymentEvent, PaymentOutbox
+from app.modules.payments.models import IdempotencyKey, Payment, PaymentEvent, PaymentOutbox
 from app.modules.payments.provider import PaymentLinkProvider, RazorpayProvider
 from app.modules.payments.schemas import PaymentLinkIn, PaymentOut, PaymentStatus, WebhookOut
 from app.modules.pricing.repository import claim_idempotency
@@ -83,6 +83,89 @@ def create_link(
             503, "PAYMENT_PROVIDER_UNCONFIGURED", "Payment provider is unavailable."
         )
     fingerprint = _fingerprint(request)
+    # Recover a previously committed intent by its stable provider reference.
+    # The lookup runs outside both database transactions.
+    with transaction_session() as session:
+        prior_key = session.scalar(
+            select(IdempotencyKey).where(
+                IdempotencyKey.business_id == business_id,
+                IdempotencyKey.action == ACTION,
+                IdempotencyKey.key == idempotency_key,
+            )
+        )
+        if prior_key is not None:
+            if prior_key.request_sha256 != fingerprint:
+                raise CommercialError(
+                    409, "IDEMPOTENCY_CONFLICT", "Key was used for another request."
+                )
+            if prior_key.state == "COMPLETED" and prior_key.response_reference:
+                return PaymentOut.model_validate(prior_key.response_reference)
+            prior_payment = repository.active_payment(session, business_id, request.quote_id)
+            if (
+                prior_payment is None
+                or prior_payment.run_id != request.run_id
+                or prior_payment.quote_version != request.quote_version
+                or prior_payment.provider_account_key != account_key
+            ):
+                raise CommercialError(
+                    409, "IDEMPOTENCY_IN_PROGRESS", "Payment intent requires reconciliation."
+                )
+            recovery_payment_id = prior_payment.id
+            recovery_reference = prior_payment.provider_reference_id
+        else:
+            recovery_payment_id = None
+    if recovery_payment_id is not None:
+        adapter = provider or RazorpayProvider()
+        finder = getattr(adapter, "find_link", None)
+        if finder is None:
+            raise CommercialError(
+                409, "IDEMPOTENCY_IN_PROGRESS", "Payment intent requires reconciliation."
+            )
+        # An empty lookup does not prove that a timed-out create never succeeded.
+        recovered = finder(reference_id=recovery_reference)
+        if recovered is None:
+            raise CommercialError(
+                409, "IDEMPOTENCY_IN_PROGRESS", "Provider link is not yet confirmed."
+            )
+        with transaction_session() as session:
+            payment = repository.lock_payment(session, business_id, recovery_payment_id)
+            key, _ = claim_idempotency(session, business_id, ACTION, idempotency_key, fingerprint)
+            if key.state == "COMPLETED" and key.response_reference:
+                return PaymentOut.model_validate(key.response_reference)
+            if (
+                payment is None
+                or payment.provider_account_key != account_key
+                or payment.provider_reference_id != recovery_reference
+                or recovered.reference_id != recovery_reference
+                or type(recovered.amount_paise) is not int
+                or recovered.amount_paise != payment.amount_paise
+                or recovered.currency != payment.currency
+                or recovered.status not in {"created", "paid"}
+                or not isinstance(recovered.link_id, str)
+                or not recovered.link_id
+                or not isinstance(recovered.short_url, str)
+                or not recovered.short_url.startswith("https://")
+                or payment.status not in {"CREATED", "PENDING", "PAID"}
+                or (
+                    payment.provider_link_id is not None
+                    and payment.provider_link_id != recovered.link_id
+                )
+            ):
+                raise CommercialError(
+                    409, "PAYMENT_AMOUNT_MISMATCH", "Provider link differs from payment intent."
+                )
+            payment.provider_link_id = recovered.link_id
+            payment.payment_url = recovered.short_url
+            if payment.status == "CREATED":
+                payment.status = "PENDING"
+            if recovered.status == "paid" and payment.status != "PAID":
+                payment.reconciliation_hold = True
+            payment.updated_at = datetime.now(UTC)
+            result = _response(payment)
+            key.state = "COMPLETED"
+            key.response_status = 200
+            key.response_reference = result.model_dump(mode="json")
+            return result
     with transaction_session() as session:
         key, claimed = claim_idempotency(session, business_id, ACTION, idempotency_key, fingerprint)
         if key.request_sha256 != fingerprint:

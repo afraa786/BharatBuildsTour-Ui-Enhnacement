@@ -8,10 +8,10 @@ records. Automated tests use a fake provider and disposable PostgreSQL; no
 live Razorpay call or money movement was made. The frozen commercial contract
 remains [contracts.md](contracts.md). No new database migration is needed.
 
-The implementation is **not a live-payment launch approval**. Provider-reference
-reconciliation after an ambiguous network outcome, provider-confirmed link
-cancellation/expiry, merchant credential validation, operational outbox
-delivery, and full integration with Rehbar still require work before live use.
+The implementation is **not a live-payment launch approval**. Reference lookup
+now recovers a verified existing link after an ambiguous create result; unresolved
+negative lookups, provider-confirmed cancellation/expiry, merchant validation,
+outbox delivery, and Rehbar integration remain live-release gates.
 
 ## Internal API and configuration
 
@@ -50,9 +50,10 @@ return `IDEMPOTENCY_CONFLICT`. A quote version with any prior local payment
 intent cannot get another link through this endpoint, including after a
 locally failed/expired attempt, until its provider reference is reconciled.
 An ambiguous provider timeout leaves `CREATED` plus a `PROCESSING` key and
-returns `PROVIDER_OUTCOME_UNKNOWN`. Retrying does **not** blindly create a
-second provider link. Operational reference reconciliation remains a required
-follow-up, not a guessed automatic retry.
+returns `PROVIDER_OUTCOME_UNKNOWN`. A same-key retry looks up Razorpay's unique
+reference; an exact valid link is attached. Empty/uncertain lookup does **not**
+blindly create another link. See [post-audit remediation](POST_AUDIT_REMEDIATION.md)
+for validation and remaining operational holds.
 
 The local state vocabulary is `CREATED`, `PENDING`, `PAID`, `FAILED`,
 `EXPIRED`, `CANCELLED`; this checkpoint actively writes `CREATED`, `PENDING`,

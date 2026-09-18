@@ -21,12 +21,13 @@ Amir's shared demo pack is ready in [fixtures/](fixtures/README.md). Use
 
 ## Working MVP
 
-The control room in `client/` is now a responsive, interactive demo. The FastAPI
-service also exposes a deterministic demo workflow under `/demo`: `POST
+The control room in `client/` is now a responsive, interactive demo. In local,
+development, and test environments FastAPI exposes a demo workflow under `/demo`: `POST
 /demo/webhook/whatsapp`, `GET /demo/runs`, `POST /demo/runs/{run_id}/accept`,
 `POST /demo/payments/create-link`, `POST /demo/payments/{payment_id}/confirm`,
 and `POST /demo/invoice/generate`.
-The `/demo` payment confirmation endpoint is strictly for local demonstrations;
+The in-memory router is not registered in production. Its payment confirmation
+endpoint is strictly for local demonstrations;
 production payment state must still come from a verified Razorpay webhook.
 
 ## Quick start

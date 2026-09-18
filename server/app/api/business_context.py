@@ -1,4 +1,4 @@
-import secrets
+import hmac
 from typing import Annotated
 from uuid import UUID
 
@@ -11,7 +11,7 @@ from app.core.config import get_settings
 def require_business_context(
     internal_token: Annotated[str | None, Header(alias="X-Internal-Service-Token")] = None,
 ) -> UUID:
-    """Temporary single-business service identity until full auth is implemented."""
+    """Authenticate a server-side caller and bind it to one configured business."""
     settings = get_settings()
     configured_token = settings.internal_service_token.get_secret_value()
     if not configured_token or not settings.internal_business_id:
@@ -20,7 +20,7 @@ def require_business_context(
             "AUTHORIZATION_NOT_CONFIGURED",
             "Commercial API authorization is not configured.",
         )
-    if internal_token is None or not secrets.compare_digest(internal_token, configured_token):
+    if internal_token is None or not hmac.compare_digest(internal_token, configured_token):
         raise CommercialError(401, "UNAUTHORIZED", "A valid internal service identity is required.")
     try:
         return UUID(settings.internal_business_id)

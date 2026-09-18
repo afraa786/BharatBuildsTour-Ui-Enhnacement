@@ -78,8 +78,9 @@ A legitimate late payment remains `PAID` with `reconciliation_hold`, which
 blocks automatic invoicing. The `payment.verified`/reconciliation outbox is
 committed with payment/event state, but transport to Rehbar is **deferred**.
 `FAILED`, `EXPIRED`, and `CANCELLED` exist in the frozen state model; their
-provider-confirmed operational adapters and uncertain-reference reconciliation
-are not yet implemented. Do not treat this demo as live payment readiness.
+provider-confirmed operational adapters are not yet implemented. Post-audit
+reference lookup can recover an exact existing link, but an empty lookup still
+requires operational reconciliation. Do not treat this demo as live payment readiness.
 
 ## Invoice and artifact state
 
@@ -127,9 +128,9 @@ follows `docs/contracts.md`, and the QA owner must resolve those vectors.
 
 - Fareed + Rehbar: authenticate the exact approval/acceptance transport and
   consume the outbox with durable idempotent delivery; audit Rehbar route auth.
-- Fareed: implement/reference-test provider reconciliation after uncertain
-  link creation and provider-confirmed cancel/expire/failure transitions;
-  validate test-mode then live merchant configuration without real charges in
+- Fareed: operate unresolved negative provider lookups, implement provider-confirmed
+  cancel/expire/failure transitions, and validate test-mode then live merchant
+  configuration without real charges in
   automated tests.
 - Business/accounting owner: confirm real SKU/GST inputs, CGST/SGST/IGST,
   place of supply, legally required fields, number format, and PDF layout.
@@ -144,3 +145,6 @@ follows `docs/contracts.md`, and the QA owner must resolve those vectors.
 
 These are known deferred gates, not silent defaults. Independent audit is
 required before merging or enabling live payments.
+
+Post-audit auth, access matrix, Razorpay lookup behavior, and the deferred
+synchronous-PDF scalability item are recorded in [release hardening](POST_AUDIT_REMEDIATION.md).
