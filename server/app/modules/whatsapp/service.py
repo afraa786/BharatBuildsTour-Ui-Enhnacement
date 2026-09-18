@@ -6,8 +6,104 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.modules.runs import service as runs_service
+from app.modules.runs.intent_router import ActorType, route_message
 from app.modules.whatsapp import client
 from app.modules.whatsapp.models import WhatsAppMessage
+
+TEXTUAL_MESSAGE_TYPES = {
+    "text",
+    "interactive",
+    "button",
+    "image",
+    "video",
+    "document",
+}
+
+
+def _detect_requested_output_mode(text: str) -> str | None:
+    normalized = text.casefold().strip()
+    audio_tokens = ("audio", "voice", "voice note", "audio me", "audio mein")
+    if any(token in normalized for token in audio_tokens):
+        return "audio"
+    if any(token in normalized for token in ("pdf", "document", "doc", "invoice pdf")):
+        return "document"
+    if any(token in normalized for token in ("image", "photo", "pic", "picture")):
+        return "image"
+    return None
+
+
+def _extract_text_content(message: dict) -> tuple[str, dict]:
+    message_type = message.get("type")
+    if message_type == "text":
+        text = message.get("text", {}).get("body", "")
+        return text, {"text_body": text}
+    if message_type == "interactive":
+        interactive = message.get("interactive", {})
+        reply_type = interactive.get("type")
+        if reply_type == "button_reply":
+            reply = interactive.get("button_reply", {})
+            title = reply.get("title", "")
+            return title, {
+                "interactive_type": reply_type,
+                "interactive_reply_id": reply.get("id"),
+                "interactive_reply_title": title,
+            }
+        if reply_type == "list_reply":
+            reply = interactive.get("list_reply", {})
+            title = reply.get("title", "")
+            return title, {
+                "interactive_type": reply_type,
+                "interactive_reply_id": reply.get("id"),
+                "interactive_reply_title": title,
+                "interactive_reply_description": reply.get("description"),
+            }
+        return "", {"interactive_type": reply_type}
+    if message_type == "button":
+        button = message.get("button", {})
+        text = button.get("text", "")
+        return text, {"button_payload": button.get("payload"), "button_text": text}
+    if message_type in {"image", "video", "document"}:
+        body = message.get(message_type, {})
+        caption = body.get("caption", "")
+        return caption, {
+            "media_id": body.get("id"),
+            "mime_type": body.get("mime_type"),
+            "caption": caption,
+            "filename": body.get("filename"),
+            "sha256": body.get("sha256"),
+        }
+    if message_type == "audio":
+        body = message.get("audio", {})
+        return "", {
+            "media_id": body.get("id"),
+            "mime_type": body.get("mime_type"),
+            "sha256": body.get("sha256"),
+            "voice": body.get("voice", False),
+        }
+    if message_type == "sticker":
+        body = message.get("sticker", {})
+        return "", {
+            "media_id": body.get("id"),
+            "mime_type": body.get("mime_type"),
+            "animated": body.get("animated", False),
+        }
+    if message_type == "location":
+        body = message.get("location", {})
+        summary = " ".join(filter(None, [body.get("name"), body.get("address")]))
+        return summary, {
+            "latitude": body.get("latitude"),
+            "longitude": body.get("longitude"),
+            "location_name": body.get("name"),
+            "location_address": body.get("address"),
+        }
+    if message_type == "contacts":
+        contacts = message.get("contacts", [])
+        names = [contact.get("name", {}).get("formatted_name", "") for contact in contacts]
+        return " ".join(filter(None, names)), {
+            "contacts_count": len(contacts),
+            "contacts": contacts,
+        }
+    return "", {}
 
 
 def _extract_inbound_messages(payload: dict) -> Iterator[dict]:
@@ -19,13 +115,16 @@ def _extract_inbound_messages(payload: dict) -> Iterator[dict]:
                 c["wa_id"]: c.get("profile", {}).get("name") for c in value.get("contacts", [])
             }
             for message in value.get("messages", []):
+                text, extra = _extract_text_content(message)
                 yield {
                     "phone_number_id": phone_number_id,
                     "wa_id": message.get("from"),
                     "buyer_name": contacts.get(message.get("from")),
                     "message_id": message.get("id"),
                     "type": message.get("type"),
-                    "text": message.get("text", {}).get("body", ""),
+                    "text": text,
+                    "requested_output_mode": _detect_requested_output_mode(text),
+                    **extra,
                 }
 
 
@@ -54,11 +153,39 @@ def _log_message(
     return True
 
 
+def _non_text_acknowledgement(message: dict) -> str:
+    message_type = message["type"]
+    if message_type == "audio":
+        return (
+            "I received your audio note. Send a short text too, "
+            "or connect transcription for full voice handling."
+        )
+    if message_type == "image":
+        return (
+            "I received your image. Add quantity or a short note "
+            "if you want me to prepare a quote from it."
+        )
+    if message_type == "document":
+        return (
+            "I received your document. I can use the caption "
+            "and attached file context for the next step."
+        )
+    if message_type == "location":
+        return "Location received. I can use it for delivery or pickup planning."
+    if message_type == "contacts":
+        return "Contact received. I can use it for vendor or buyer follow-up once linked to a run."
+    if message_type == "video":
+        return "Video received. Add a short caption or text so I know what action to take."
+    if message_type == "sticker":
+        return "Sticker received. Send a short text if you want me to take an action."
+    return "I received your message. Send a short text if you want me to take a specific action."
+
+
 async def handle_webhook_payload(db: Session, payload: dict) -> None:
     settings = get_settings()
 
     for message in _extract_inbound_messages(payload):
-        if message["type"] != "text" or not message["message_id"]:
+        if not message["message_id"]:
             continue
 
         is_new = _log_message(
@@ -73,15 +200,50 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
             continue
         db.commit()
 
-        if message["wa_id"] in settings.admin_wa_ids:
+        decision = route_message(
+            message["text"],
+            actor_hint=(
+                ActorType.ADMIN
+                if message["wa_id"] in settings.admin_wa_ids
+                else ActorType.VENDOR
+                if message["wa_id"] in settings.vendor_wa_ids
+                else None
+            ),
+            wa_id=message["wa_id"],
+            admin_wa_ids=settings.admin_wa_ids,
+            vendor_wa_ids=settings.vendor_wa_ids,
+        )
+        if message["type"] not in TEXTUAL_MESSAGE_TYPES and not message["text"]:
+            outbound = [
+                runs_service.OutboundMessage(
+                    to=message["wa_id"],
+                    text=_non_text_acknowledgement(message),
+                )
+            ]
+        elif decision.actor is ActorType.ADMIN:
             outbound = runs_service.process_admin_message(db, message["wa_id"], message["text"])
+        elif decision.actor is ActorType.VENDOR:
+            outbound = runs_service.process_vendor_message(db, message["wa_id"], message["text"])
         else:
             outbound = runs_service.process_buyer_message(db, message["wa_id"], message["text"])
         db.commit()
 
         for out_message in outbound:
-            await client.send_text_message(
-                out_message.to, out_message.text, phone_number_id=message["phone_number_id"]
+            await client.send_message(
+                to=out_message.to,
+                phone_number_id=message["phone_number_id"],
+                message_type=getattr(out_message, "message_type", "text"),
+                text=getattr(out_message, "text", None),
+                media_id=getattr(out_message, "media_id", None),
+                link=getattr(out_message, "link", None),
+                caption=getattr(out_message, "caption", None),
+                filename=getattr(out_message, "filename", None),
+                latitude=getattr(out_message, "latitude", None),
+                longitude=getattr(out_message, "longitude", None),
+                name=getattr(out_message, "name", None),
+                address=getattr(out_message, "address", None),
+                contacts=getattr(out_message, "contacts", None),
+                interactive=getattr(out_message, "interactive", None),
             )
             _log_message(
                 db,
@@ -89,6 +251,14 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
                 direction="out",
                 wa_id=out_message.to,
                 phone_number_id=message["phone_number_id"],
-                payload={"text": out_message.text},
+                payload={
+                    "text": out_message.text,
+                    "message_type": getattr(out_message, "message_type", "text"),
+                    "actor": decision.actor.value,
+                    "intent": decision.intent.value,
+                    "actor_source": decision.actor_source,
+                    "matched_rule": decision.matched_rule,
+                    "requires_exact_run_id": decision.requires_exact_run_id,
+                },
             )
         db.commit()

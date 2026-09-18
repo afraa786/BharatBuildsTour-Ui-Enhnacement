@@ -21,8 +21,16 @@ def test_demo_quote_to_cash_is_idempotent() -> None:
         assert duplicate.json()["duplicate"] is True
         assert client.post(f"/demo/runs/{run_id}/accept").status_code == 200
         payment = client.post("/demo/payments/create-link", json={"run_id": run_id}).json()
-        assert client.post("/demo/invoice/generate", json={"payment_id": payment["id"]}).status_code == 409
+        assert (
+            client.post("/demo/invoice/generate", json={"payment_id": payment["id"]}).status_code
+            == 409
+        )
         assert client.post(f"/demo/payments/{payment['id']}/confirm").json()["status"] == "PAID"
         invoice = client.post("/demo/invoice/generate", json={"payment_id": payment["id"]}).json()
         assert invoice["idempotent"] is False
-        assert client.post("/demo/invoice/generate", json={"payment_id": payment["id"]}).json()["idempotent"] is True
+        assert (
+            client.post("/demo/invoice/generate", json={"payment_id": payment["id"]}).json()[
+                "idempotent"
+            ]
+            is True
+        )

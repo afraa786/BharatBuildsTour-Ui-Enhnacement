@@ -1,11 +1,12 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.modules.runs import mock_desks
+from app.modules.runs.intent_router import ActorType, IntentType, route_message
 from app.modules.runs.models import Run
 from app.modules.runs.repository import (
     add_event,
@@ -24,7 +25,6 @@ _REJECT_RE = re.compile(r"^reject\s+(rfq-\S+)$", re.IGNORECASE)
 _SHOW_RE = re.compile(r"^show\s+(rfq-\S+)$", re.IGNORECASE)
 _WHY_RE = re.compile(r"^why\s+was\s+(rfq-\S+)\s+blocked\??$", re.IGNORECASE)
 _OPEN_QUOTES_RE = re.compile(r"^show\s+open\s+quotes\s+today$", re.IGNORECASE)
-_ACCEPT_WORDS = {"accept", "accepted", "confirm", "confirmed", "ok", "okay"}
 
 HELP_TEXT = (
     "Sorry, I didn't recognize that command. Try: Approve RFQ-1042, "
@@ -36,7 +36,18 @@ HELP_TEXT = (
 @dataclass
 class OutboundMessage:
     to: str
-    text: str
+    text: str = ""
+    message_type: str = "text"
+    media_id: str | None = None
+    link: str | None = None
+    caption: str | None = None
+    filename: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    name: str | None = None
+    address: str | None = None
+    contacts: list[dict] = field(default_factory=list)
+    interactive: dict | None = None
 
 
 def _transition(
@@ -155,6 +166,42 @@ def _run_pipeline(db: Session, run: Run, text_body: str) -> list[OutboundMessage
     return outbound
 
 
+def _payment_link_text(run: Run) -> str:
+    payment_id = run.payment_id or f"pay_{run.run_id.split('-')[1]}"
+    total = run.quote_snapshot["total"] if run.quote_snapshot else "0.00"
+    link = f"https://pay.stockaware.test/{payment_id}"
+    return f"Complete payment here (mock link): {link} for ₹{total}"
+
+
+def _invoice_text(run: Run) -> str:
+    invoice_id = run.invoice_id or f"INV-{run.run_id.split('-')[1]}"
+    return (
+        f"Your invoice {invoice_id} is ready. Reply if you want it sent again by email or WhatsApp."
+    )
+
+
+def _important_updates_text(db: Session | None) -> str:
+    if db is None:
+        return (
+            "I can help with operational updates. Try: Show open quotes today, show low stock, "
+            "or show pending payments."
+        )
+    return _open_quotes_today_text(db)
+
+
+def _vendor_update_text(intent: IntentType, vendor_wa_id: str) -> str:
+    if intent is IntentType.VENDOR_PRICE_REVISION:
+        return (
+            f"Vendor update from {vendor_wa_id}: revised pricing received. "
+            "Review affected open quotes."
+        )
+    if intent is IntentType.VENDOR_DELAY_NOTICE:
+        return f"Vendor update from {vendor_wa_id}: delivery or dispatch delay reported."
+    if intent is IntentType.VENDOR_STOCK_UPDATE:
+        return f"Vendor update from {vendor_wa_id}: stock availability update received."
+    return f"Vendor update from {vendor_wa_id}: new supplier message received."
+
+
 def process_buyer_message(db: Session, buyer_wa_id: str, text_body: str) -> list[OutboundMessage]:
     run = get_open_run_for_buyer(db, buyer_wa_id)
 
@@ -165,6 +212,12 @@ def process_buyer_message(db: Session, buyer_wa_id: str, text_body: str) -> list
         return _run_pipeline(db, run, text_body)
 
     current = RunStatus(run.status)
+    decision = route_message(
+        text_body,
+        actor_hint=ActorType.BUYER,
+        current_status=current.value,
+        wa_id=buyer_wa_id,
+    )
 
     if current == RunStatus.WAITING_FOR_CLARIFICATION:
         run.raw_text = f"{run.raw_text} {text_body}"
@@ -172,17 +225,30 @@ def process_buyer_message(db: Session, buyer_wa_id: str, text_body: str) -> list
         return _run_pipeline(db, run, run.raw_text)
 
     if current == RunStatus.QUOTE_SENT:
-        if text_body.strip().lower() in _ACCEPT_WORDS:
+        if decision.intent is IntentType.ACCEPT_QUOTE:
             _transition(db, run, RunStatus.ACCEPTED, "Sales Desk", "Buyer accepted quote")
-            _transition(
-                db, run, RunStatus.PAYMENT_LINK_SENT, "Accounts Desk", "Payment link created (mock)"
-            )
             run.payment_id = f"pay_{run.run_id.split('-')[1]}"
-            total = run.quote_snapshot["total"] if run.quote_snapshot else "0.00"
-            link = f"https://pay.stockaware.test/{run.payment_id}"
+            _transition(
+                db,
+                run,
+                RunStatus.PAYMENT_LINK_SENT,
+                "Accounts Desk",
+                "Payment link created (mock)",
+            )
+            _transition(
+                db,
+                run,
+                RunStatus.PAYMENT_PENDING,
+                "Accounts Desk",
+                "Awaiting payment confirmation",
+            )
+            return [OutboundMessage(buyer_wa_id, _payment_link_text(run))]
+        if decision.intent is IntentType.NEGOTIATE_PRICE:
             return [
                 OutboundMessage(
-                    buyer_wa_id, f"Complete payment here (mock link): {link} for ₹{total}"
+                    buyer_wa_id,
+                    "I can help with that. Tell me the exact quantity or target price "
+                    "and I'll revise the quote safely.",
                 )
             ]
         run.raw_text = f"{run.raw_text} {text_body}"
@@ -192,19 +258,53 @@ def process_buyer_message(db: Session, buyer_wa_id: str, text_body: str) -> list
             RunStatus.CHANGE_REQUESTED,
             "Sales Desk",
             "Buyer requested change",
-            {"text": text_body},
+            {"text": text_body, "intent": decision.intent.value},
         )
         _transition(
-            db, run, RunStatus.NORMALIZING, "Manager", "Re-normalizing after change request"
+            db,
+            run,
+            RunStatus.NORMALIZING,
+            "Manager",
+            "Re-normalizing after change request",
         )
         return _run_pipeline(db, run, run.raw_text)
+
+    if current in {RunStatus.PAYMENT_LINK_SENT, RunStatus.PAYMENT_PENDING}:
+        if decision.intent is IntentType.PAYMENT_CLAIM:
+            add_event(db, run, "Accounts Desk", "Buyer claimed payment", {"text": text_body})
+            return [
+                OutboundMessage(
+                    buyer_wa_id,
+                    "Thanks — I have noted your payment update. "
+                    "We will verify it with the payment provider and confirm shortly.",
+                )
+            ]
+        if decision.intent is IntentType.REQUEST_PAYMENT_LINK:
+            return [OutboundMessage(buyer_wa_id, _payment_link_text(run))]
+        if decision.intent is IntentType.REQUEST_INVOICE:
+            return [
+                OutboundMessage(
+                    buyer_wa_id,
+                    "I'll send the invoice as soon as payment is verified. "
+                    "If you've already paid, we are checking it now.",
+                )
+            ]
+
+    completed_states = {
+        RunStatus.PAYMENT_CONFIRMED,
+        RunStatus.INVOICE_GENERATED,
+        RunStatus.ORDER_CONFIRMED,
+    }
+    if current in completed_states:
+        if decision.intent is IntentType.REQUEST_INVOICE:
+            return [OutboundMessage(buyer_wa_id, _invoice_text(run))]
 
     add_event(
         db,
         run,
         "Manager",
         "Received message in non-actionable state",
-        {"text": text_body, "status": current.value},
+        {"text": text_body, "status": current.value, "intent": decision.intent.value},
     )
     return [
         OutboundMessage(
@@ -285,7 +385,12 @@ def reject_run(db: Session, run_id: str, actor: str) -> list[OutboundMessage]:
     ]
 
 
-def _show_run_text(db: Session, run_id: str) -> str:
+def _show_run_text(db: Session | None, run_id: str) -> str:
+    if db is None:
+        return (
+            f"I need the live run store to show {run_id}. "
+            "Open the control room or try again in the connected environment."
+        )
     run = get_run_by_run_id(db, run_id)
     if run is None:
         return f"{run_id} not found."
@@ -293,7 +398,9 @@ def _show_run_text(db: Session, run_id: str) -> str:
     return f"{run.run_id} — status: {run.status}\nBuyer: {run.buyer_wa_id}\nTotal: ₹{total}"
 
 
-def _why_blocked_text(db: Session, run_id: str) -> str:
+def _why_blocked_text(db: Session | None, run_id: str) -> str:
+    if db is None:
+        return f"I need the live run store to inspect why {run_id} is blocked."
     run = get_run_by_run_id(db, run_id)
     if run is None:
         return f"{run_id} not found."
@@ -312,7 +419,9 @@ def _why_blocked_text(db: Session, run_id: str) -> str:
     return f"{run_id} is not blocked, current status: {run.status}."
 
 
-def _open_quotes_today_text(db: Session) -> str:
+def _open_quotes_today_text(db: Session | None) -> str:
+    if db is None:
+        return "I need the live run store to summarise open quotes today."
     runs = list_runs(db, status=RunStatus.QUOTE_SENT.value)
     today = datetime.now(UTC).date()
     todays_runs = [r for r in runs if r.created_at.date() == today]
@@ -325,12 +434,31 @@ def _open_quotes_today_text(db: Session) -> str:
     return "\n".join(lines)
 
 
-def process_admin_message(db: Session, admin_wa_id: str, text_body: str) -> list[OutboundMessage]:
+def process_admin_message(
+    db: Session | None,
+    admin_wa_id: str,
+    text_body: str,
+) -> list[OutboundMessage]:
     stripped = text_body.strip()
+    decision = route_message(stripped, actor_hint=ActorType.ADMIN, wa_id=admin_wa_id)
 
     if m := _APPROVE_RE.match(stripped):
+        if db is None:
+            return [
+                OutboundMessage(
+                    admin_wa_id,
+                    "Approval actions need the live run store. Reconnect and try again.",
+                )
+            ]
         return approve_run(db, m.group(1).upper(), actor=admin_wa_id)
     if m := _REJECT_RE.match(stripped):
+        if db is None:
+            return [
+                OutboundMessage(
+                    admin_wa_id,
+                    "Rejection actions need the live run store. Reconnect and try again.",
+                )
+            ]
         return reject_run(db, m.group(1).upper(), actor=admin_wa_id)
     if m := _SHOW_RE.match(stripped):
         return [OutboundMessage(admin_wa_id, _show_run_text(db, m.group(1).upper()))]
@@ -339,7 +467,58 @@ def process_admin_message(db: Session, admin_wa_id: str, text_body: str) -> list
     if _OPEN_QUOTES_RE.match(stripped):
         return [OutboundMessage(admin_wa_id, _open_quotes_today_text(db))]
 
+    if decision.intent is IntentType.APPROVE_QUOTE:
+        return [
+            OutboundMessage(
+                admin_wa_id,
+                "I found an approval-style message, but I need the exact RFQ ID. "
+                "Try: Approve RFQ-1042.",
+            )
+        ]
+    if decision.intent is IntentType.REJECT_QUOTE:
+        return [
+            OutboundMessage(
+                admin_wa_id,
+                "I found a rejection-style message, but I need the exact RFQ ID. "
+                "Try: Reject RFQ-1042.",
+            )
+        ]
+    if decision.intent is IntentType.IMPORTANT_UPDATES:
+        return [OutboundMessage(admin_wa_id, _important_updates_text(db))]
+    if decision.intent is IntentType.SHOW_LOW_STOCK:
+        return [
+            OutboundMessage(
+                admin_wa_id,
+                "Low-stock signals are available in the control room. "
+                "Use 'show low stock' in the demo APIs or open the inventory alerts panel.",
+            )
+        ]
+    if decision.intent is IntentType.SHOW_PENDING_PAYMENTS:
+        return [
+            OutboundMessage(
+                admin_wa_id,
+                "Pending payments are tracked in Accounts Desk. "
+                "Open the payments queue or ask for the daily summary.",
+            )
+        ]
+
     return [OutboundMessage(admin_wa_id, HELP_TEXT)]
+
+
+def process_vendor_message(
+    db: Session | None,
+    vendor_wa_id: str,
+    text_body: str,
+) -> list[OutboundMessage]:
+    settings = get_settings()
+    decision = route_message(
+        text_body,
+        actor_hint=ActorType.VENDOR,
+        wa_id=vendor_wa_id,
+    )
+    targets = settings.admin_wa_ids or {vendor_wa_id}
+    text = _vendor_update_text(decision.intent, vendor_wa_id)
+    return [OutboundMessage(target, text) for target in sorted(targets)]
 
 
 def get_run_snapshot(db: Session, run_id: str) -> Run | None:

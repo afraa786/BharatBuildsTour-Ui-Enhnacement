@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     whatsapp_test_access_token: SecretStr = SecretStr("")
     whatsapp_test_verify_token: str = ""
     admin_whatsapp_numbers: str = ""
+    vendor_whatsapp_numbers: str = ""
+    razorpay_key_id: str = ""
+    razorpay_key_secret: SecretStr = SecretStr("")
+    razorpay_webhook_secret: SecretStr = SecretStr("")
+    razorpay_callback_url: str = ""
+    invoice_artifact_root: str = "artifacts"
+    public_artifact_base_url: str = ""
 
     @model_validator(mode="after")
     def reject_placeholder_password(self) -> "Settings":
@@ -38,6 +45,10 @@ class Settings(BaseSettings):
     @property
     def admin_wa_ids(self) -> set[str]:
         return {n.strip() for n in self.admin_whatsapp_numbers.split(",") if n.strip()}
+
+    @property
+    def vendor_wa_ids(self) -> set[str]:
+        return {n.strip() for n in self.vendor_whatsapp_numbers.split(",") if n.strip()}
 
     @property
     def whatsapp_verify_tokens(self) -> set[str]:

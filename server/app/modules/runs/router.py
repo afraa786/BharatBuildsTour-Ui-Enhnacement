@@ -12,7 +12,7 @@ from app.modules.runs.schemas import (
     RunOut,
     TimelineEventOut,
 )
-from app.modules.whatsapp.client import send_text_message
+from app.modules.whatsapp.client import send_message
 
 router = APIRouter(tags=["runs"])
 
@@ -21,9 +21,40 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 async def _deliver(db: Session, outbound: list) -> list[OutboundMessageOut]:
     for message in outbound:
-        await send_text_message(message.to, message.text)
+        await send_message(
+            to=message.to,
+            message_type=message.message_type,
+            text=message.text,
+            media_id=message.media_id,
+            link=message.link,
+            caption=message.caption,
+            filename=message.filename,
+            latitude=message.latitude,
+            longitude=message.longitude,
+            name=message.name,
+            address=message.address,
+            contacts=message.contacts,
+            interactive=message.interactive,
+        )
     db.commit()
-    return [OutboundMessageOut(to=m.to, text=m.text) for m in outbound]
+    return [
+        OutboundMessageOut(
+            to=m.to,
+            text=m.text,
+            message_type=m.message_type,
+            media_id=m.media_id,
+            link=m.link,
+            caption=m.caption,
+            filename=m.filename,
+            latitude=m.latitude,
+            longitude=m.longitude,
+            name=m.name,
+            address=m.address,
+            contacts=m.contacts,
+            interactive=m.interactive,
+        )
+        for m in outbound
+    ]
 
 
 @router.get("/runs", response_model=list[RunOut])

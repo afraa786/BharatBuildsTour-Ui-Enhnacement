@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RunOut(BaseModel):
@@ -42,4 +42,15 @@ class ApprovalActionIn(BaseModel):
 
 class OutboundMessageOut(BaseModel):
     to: str
-    text: str
+    text: str = ""
+    message_type: str = "text"
+    media_id: str | None = None
+    link: str | None = None
+    caption: str | None = None
+    filename: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    name: str | None = None
+    address: str | None = None
+    contacts: list[dict] = Field(default_factory=list)
+    interactive: dict | None = None
