@@ -15,6 +15,7 @@ class Run(Base):
         UniqueConstraint("run_id"),
         Index("ix_runs_run_id", "run_id"),
         Index("ix_runs_buyer_wa_id", "buyer_wa_id"),
+        Index("ix_runs_business_status", "business_id", "status"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -30,6 +31,11 @@ class Run(Base):
     quote_id: Mapped[str | None] = mapped_column(String, nullable=True)
     payment_id: Mapped[str | None] = mapped_column(String, nullable=True)
     invoice_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Historic pre-owner-dashboard rows remain intentionally unscoped and hidden.
+    business_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="RESTRICT"), nullable=True
+    )
+    expected_delivery_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     invoice_artifact_root: str = "artifacts"
     public_artifact_base_url: str = ""
     openai_api_key: SecretStr = SecretStr("")
+    jwt_secret: SecretStr
 
     @model_validator(mode="after")
     def reject_placeholder_password(self) -> "Settings":

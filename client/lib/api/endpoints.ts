@@ -22,7 +22,7 @@
  * response, including an empty list, always wins.
  */
 
-import { ApiError, apiFetchBlob, apiGet, apiPost } from './client'
+import { ApiError, apiFetch, apiFetchBlob, apiGet, apiPost } from './client'
 import { USE_MOCKS } from '@/lib/config'
 import * as mock from './mock'
 import type {
@@ -383,4 +383,94 @@ export function generateInvoice(
 
 export function getInvoiceArtifact(invoiceId: string): Promise<Blob> {
   return apiFetchBlob(`/invoices/${encodeURIComponent(invoiceId)}/artifact`)
+}
+
+/** JWT owner dashboard contracts. These calls always use the real backend. */
+export interface OwnerSummary {
+  total_sales_paise: number
+  runs_count_by_status: Record<string, number>
+  leads_count: number
+  customers_count: number
+  upcoming_deliveries: Array<{ run_id: string; buyer_name: string | null; expected_delivery_date: string }>
+}
+export interface OwnerCategory { id: string; name: string; created_at: string }
+export interface OwnerProduct {
+  id: string; sku: string; name: string; category_id: string | null
+  cost_unit_paise: number; base_unit_price_paise: number; gst_rate_bps: number
+  stock_qty: number; active: boolean; sellable_unit: string; stock_unit: string; pack_size: number
+}
+export interface OwnerBuyer {
+  id: string; display_name: string; whatsapp_e164: string | null; type: 'lead' | 'customer'
+  source: string | null; last_contacted_at: string | null; created_at: string
+}
+export interface OwnerRun {
+  id: string; run_id: string; status: string; buyer_name: string | null; buyer_wa_id: string
+  line_items: Array<Record<string, unknown>>; quote_snapshot: Record<string, unknown> | null
+  expected_delivery_date: string | null; created_at: string
+  quote: { id: string; status: string; total_paise: number } | null
+  payment: { id: string; status: string; amount_paise: number; paid_at: string | null } | null
+  invoice: { id: string; invoice_number: string; status: string; total_paise: number } | null
+}
+export interface OwnerInvoice {
+  id: string; invoice_number: string; run_id: string; status: string; total_paise: number
+  issued_at: string; snapshot?: Record<string, unknown>
+}
+export interface OwnerSaleDay { date: string; total_paise: number }
+export type OwnerProductInput = {
+  sku: string; name: string; category_id: string | null; cost_unit_paise: number
+  base_unit_price_paise: number; gst_rate_bps: number; stock_qty: number
+}
+
+export function ownerLogin(phone_number: string): Promise<{ access_token: string }> {
+  return apiPost('/auth/login', { phone_number })
+}
+export function ownerMe(): Promise<{ id: string; name: string; phone_number: string; business_id: string }> {
+  return apiGet('/me')
+}
+export function ownerSummary(): Promise<OwnerSummary> { return apiGet('/dashboard/summary') }
+export function ownerCategories(): Promise<OwnerCategory[]> { return apiGet('/categories') }
+export function ownerCreateCategory(name: string): Promise<OwnerCategory> {
+  return apiPost('/categories', { name })
+}
+export function ownerEditCategory(id: string, name: string): Promise<OwnerCategory> {
+  return apiFetch(`/categories/${encodeURIComponent(id)}`, { method: 'PATCH', body: { name } })
+}
+export function ownerDeleteCategory(id: string): Promise<void> {
+  return apiFetch(`/categories/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+export function ownerProducts(categoryId?: string): Promise<OwnerProduct[]> {
+  return apiGet(`/products${categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : ''}`)
+}
+export function ownerCreateProduct(body: OwnerProductInput): Promise<OwnerProduct> {
+  return apiPost('/products', body)
+}
+export function ownerEditProduct(id: string, body: Partial<OwnerProductInput>): Promise<OwnerProduct> {
+  return apiFetch(`/products/${encodeURIComponent(id)}`, { method: 'PATCH', body })
+}
+export function ownerDeleteProduct(id: string): Promise<void> {
+  return apiFetch(`/products/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+export function ownerBuyers(type?: 'lead' | 'customer'): Promise<OwnerBuyer[]> {
+  return apiGet(`/buyers${type ? `?type=${type}` : ''}`)
+}
+export function ownerCreateBuyer(body: { display_name: string; whatsapp_e164?: string; type: 'lead' | 'customer' }): Promise<OwnerBuyer> {
+  return apiPost('/buyers', body)
+}
+export function ownerEditBuyer(id: string, body: Partial<OwnerBuyer>): Promise<OwnerBuyer> {
+  return apiFetch(`/buyers/${encodeURIComponent(id)}`, { method: 'PATCH', body })
+}
+export function ownerRuns(status?: string): Promise<OwnerRun[]> {
+  return apiGet(`/runs${status ? `?status=${encodeURIComponent(status)}` : ''}`)
+}
+export function ownerRun(id: string): Promise<OwnerRun> { return apiGet(`/runs/${encodeURIComponent(id)}`) }
+export function ownerSetRunStatus(id: string, status: string): Promise<OwnerRun> {
+  return apiFetch(`/runs/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: { status } })
+}
+export function ownerSetDeliveryDate(id: string, expected_delivery_date: string | null): Promise<OwnerRun> {
+  return apiFetch(`/runs/${encodeURIComponent(id)}/delivery-date`, { method: 'PATCH', body: { expected_delivery_date } })
+}
+export function ownerInvoices(): Promise<OwnerInvoice[]> { return apiGet('/invoices') }
+export function ownerInvoice(id: string): Promise<OwnerInvoice> { return apiGet(`/invoices/${encodeURIComponent(id)}`) }
+export function ownerSales(from: string, to: string): Promise<OwnerSaleDay[]> {
+  return apiGet(`/reports/sales?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
 }

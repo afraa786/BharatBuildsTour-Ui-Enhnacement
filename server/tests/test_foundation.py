@@ -19,6 +19,7 @@ def test_database_url_encodes_special_characters() -> None:
         postgres_user="stockaware",
         postgres_password=SecretStr("a@b:c/d"),
         postgres_db="stockaware",
+        jwt_secret=SecretStr("test-only-jwt-secret"),
     )
     url = database_url(settings)
     assert url.password == settings.postgres_password.get_secret_value()

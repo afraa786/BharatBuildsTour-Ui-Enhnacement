@@ -1,2 +1,2 @@
-import { DashboardView } from '@/components/views'
-export default function Page(){return <DashboardView/>}
+import { OwnerDashboard } from '@/components/owner-dashboard'
+export default function Page(){return <OwnerDashboard/>}

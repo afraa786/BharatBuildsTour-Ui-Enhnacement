@@ -26,12 +26,14 @@ def generate_invoice(
     return service.generate_invoice(business_id, body, idempotency_key)
 
 
+@router.get("/internal/invoices/{invoice_id}", response_model=InvoiceOut, include_in_schema=False)
 @router.get("/invoices/{invoice_id}", response_model=InvoiceOut)
 def get_invoice(invoice_id: UUID, business_id: AuthorizedBusinessId) -> InvoiceOut:
     with transaction_session() as session:
         return service.get_invoice(session, business_id, invoice_id)
 
 
+@router.get("/internal/invoices/{invoice_id}/artifact", include_in_schema=False)
 @router.get("/invoices/{invoice_id}/artifact")
 def get_invoice_artifact(invoice_id: UUID, business_id: AuthorizedBusinessId) -> FileResponse:
     with transaction_session() as session:
