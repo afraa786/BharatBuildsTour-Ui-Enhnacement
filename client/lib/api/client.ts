@@ -157,6 +157,10 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
   }
 
   const headers: Record<string, string> = { Accept: 'application/json', ...options.headers }
+  if (typeof window !== 'undefined') {
+    const token = window.localStorage.getItem('stockaware_owner_token')
+    if (token && path !== '/auth/login') headers.Authorization = `Bearer ${token}`
+  }
 
   let body: string | undefined
   if (options.body !== undefined) {
@@ -174,6 +178,11 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
       body,
       signal: controller.signal,
     })
+
+    if (response.status === 401 && path !== '/auth/login' && typeof window !== 'undefined') {
+      window.localStorage.removeItem('stockaware_owner_token')
+      window.location.assign('/login')
+    }
 
     if (!response.ok) {
       const raw = await response.text().catch(() => '')
@@ -255,7 +264,7 @@ export async function apiFetchBlob(path: string, options: ApiRequestOptions = {}
   try {
     const response = await fetch(url, {
       method: options.method ?? 'GET',
-      headers: { Accept: 'application/pdf, application/octet-stream', ...options.headers },
+      headers: { Accept: 'application/pdf, application/octet-stream', ...options.headers, ...(typeof window !== 'undefined' && window.localStorage.getItem('stockaware_owner_token') ? { Authorization: `Bearer ${window.localStorage.getItem('stockaware_owner_token')}` } : {}) },
       signal: controller.signal,
     })
     if (!response.ok) {

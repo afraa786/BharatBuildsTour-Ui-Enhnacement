@@ -1,0 +1,74 @@
+[
+  {
+    "run_id": "RFQ-1042",
+    "from_agent": "manager",
+    "to_agent": "sales",
+    "type": "task",
+    "message": "Normalize the incoming request and confirm the buyer details.",
+    "status": "working",
+    "timestamp": "2026-09-18T09:00:00.000Z"
+  },
+  {
+    "run_id": "RFQ-1042",
+    "from_agent": "sales",
+    "to_agent": "inventory",
+    "type": "task",
+    "message": "Check stock for 20 16A switches and 10 LED panels.",
+    "status": "working",
+    "timestamp": "2026-09-18T09:00:03.000Z"
+  },
+  {
+    "run_id": "RFQ-1042",
+    "from_agent": "inventory",
+    "to_agent": "manager",
+    "type": "result",
+    "message": "Stock check complete. Switches are available; LED panels are below threshold.",
+    "status": "blocked",
+    "timestamp": "2026-09-18T09:00:06.000Z"
+  },
+  {
+    "run_id": "RFQ-1042",
+    "from_agent": "manager",
+    "to_agent": "pricing",
+    "type": "task",
+    "message": "Calculate the best quote while protecting the approved margin band.",
+    "status": "working",
+    "timestamp": "2026-09-18T09:00:09.000Z"
+  },
+  {
+    "run_id": "RFQ-1042",
+    "from_agent": "pricing",
+    "to_agent": "manager",
+    "type": "result",
+    "message": "Quote prepared. The requested discount needs owner approval.",
+    "status": "waiting",
+    "timestamp": "2026-09-18T09:00:12.000Z"
+  },
+  {
+    "run_id": "RFQ-1042",
+    "from_agent": "manager",
+    "to_agent": "qa",
+    "type": "task",
+    "message": "Run a final consistency check across the quote and stock results.",
+    "status": "completed",
+    "timestamp": "2026-09-18T09:00:15.000Z"
+  },
+  {
+    "run_id": "RFQ-1042",
+    "from_agent": "qa",
+    "to_agent": "manager",
+    "type": "result",
+    "message": "Validation failed: one line item is still short on stock.",
+    "status": "failed",
+    "timestamp": "2026-09-18T09:00:18.000Z"
+  },
+  {
+    "run_id": "RFQ-1042",
+    "from_agent": "manager",
+    "to_agent": "accounts",
+    "type": "task",
+    "message": "Prepare the payment follow-up once the quote is approved.",
+    "status": "idle",
+    "timestamp": "2026-09-18T09:00:21.000Z"
+  }
+]

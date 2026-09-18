@@ -1,0 +1,153 @@
+[1mdiff --git a/client/components/views.tsx b/client/components/views.tsx[m
+[1mindex b3e0526..fadcc8b 100644[m
+[1m--- a/client/components/views.tsx[m
+[1m+++ b/client/components/views.tsx[m
+[36m@@ -16,14 +16,23 @@[m [mimport {[m
+   Activity,[m
+   AlertTriangle,[m
+   ArrowRight,[m
+[32m+[m[32m  ArrowUpRight,[m
+   Check,[m
+   ChevronDown,[m
+   CircleDot,[m
+[32m+[m[32m  Clock3,[m
+   FileText,[m
+[32m+[m[32m  Gauge,[m
+[32m+[m[32m  MoreHorizontal,[m
+   Package,[m
+   Plus,[m
+[32m+[m[32m  Radio,[m
+   Search,[m
+[32m+[m[32m  ShieldCheck,[m
+[32m+[m[32m  TrendingUp,[m
+[32m+[m[32m  Users,[m
+   Wallet,[m
+[32m+[m[32m  Workflow,[m
+   Zap,[m
+ } from 'lucide-react'[m
+ import {[m
+[36m@@ -37,6 +46,7 @@[m [mimport {[m
+   PageHeader,[m
+   StatusPill,[m
+ } from './stockaware'[m
+[32m+[m[32mimport AgentOffice from './agent-office/App'[m
+ import {[m
+   approveRun,[m
+   createPaymentLink,[m
+[36m@@ -66,6 +76,7 @@[m [mimport type {[m
+ } from '@/lib/api/types'[m
+ import { useApiAction, useApiResource } from '@/lib/hooks/use-api'[m
+ import { BUSINESS_ID } from '@/lib/config'[m
+[32m+[m[32mimport './dashboard-premium.css'[m
+ import {[m
+   formatCount,[m
+   formatDateTime,[m
+[36m@@ -414,10 +425,25 @@[m [mexport function DashboardView() {[m
+     />[m
+   )[m
+ [m
+[32m+[m[32m  const officeSection = ([m
+[32m+[m[32m    <section className="dashboard-office-section">[m
+[32m+[m[32m      <div className="dashboard-office-heading">[m
+[32m+[m[32m        <div>[m
+[32m+[m[32m          <p className="eyebrow">AGENT WORKSPACE · LIVE</p>[m
+[32m+[m[32m          <h2>Claude Office</h2>[m
+[32m+[m[32m          <p>Watch your digital team coordinate work in real time.</p>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <span className="status-pill green"><span className="size-1.5 rounded-full bg-current" />Agents online</span>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m      <AgentOffice />[m
+[32m+[m[32m    </section>[m
+[32m+[m[32m  )[m
+[32m+[m
+   if (resource.status !== 'ready' && resource.status !== 'empty') {[m
+     return ([m
+       <AdminShell>[m
+         {header}[m
+[32m+[m[32m        {officeSection}[m
+         <StateBlock[m
+           loading={resource.status === 'loading'}[m
+           errorMessage={resource.error?.message}[m
+[36m@@ -428,7 +454,9 @@[m [mexport function DashboardView() {[m
+   }[m
+ [m
+   const data = resource.data[m
+[31m-  if (!data) return null[m
+[32m+[m[32m  if (!data) {[m
+[32m+[m[32m    return <AdminShell>{header}{officeSection}</AdminShell>[m
+[32m+[m[32m  }[m
+ [m
+   const approvals = data.runs.filter((run) => run.status === 'APPROVAL_PENDING')[m
+   const openRuns = data.runs.filter((run) => isOpenRun(run.status))[m
+[36m@@ -463,10 +491,27 @@[m [mexport function DashboardView() {[m
+         ? 'API · checking'[m
+         : 'API · unreachable'[m
+ [m
+[32m+[m[32m  const activeAgents = 6[m
+[32m+[m[32m  const attentionCount = approvals.length + lowStock.length[m
+[32m+[m[32m  const workflowRate = openRuns.length > 0[m
+[32m+[m[32m    ? Math.max(0, Math.min(99, Math.round(((openRuns.length - approvals.length) / openRuns.length) * 100)))[m
+[32m+[m[32m    : 100[m
+[32m+[m
+   return ([m
+     <AdminShell>[m
+       {header}[m
+[31m-      <div className="metrics-grid">[m
+[32m+[m[32m      <section className="dashboard-intro">[m
+[32m+[m[32m        <div>[m
+[32m+[m[32m          <div className="dashboard-live-line"><span className="dashboard-live-dot" /> COMMAND CENTER <span>/</span> {healthLabel}</div>[m
+[32m+[m[32m          <h2>Your operation, in motion.</h2>[m
+[32m+[m[32m          <p>Monitor agent decisions, customer demand, and the moments that need your attention.</p>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <div className="dashboard-intro-actions">[m
+[32m+[m[32m          <span className="dashboard-date"><Clock3 /> Monday, 17 September 2026</span>[m
+[32m+[m[32m          <Link href="/runs" className="dashboard-text-link">View all runs <ArrowUpRight /></Link>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </section>[m
+[32m+[m[32m      <div className="metrics-grid dashboard-metrics-grid">[m
+         <Metric[m
+           label="Pending approvals"[m
+           value={formatCount(approvals.length)}[m
+[36m@@ -492,8 +537,32 @@[m [mexport function DashboardView() {[m
+           icon={Zap}[m
+         />[m
+       </div>[m
+[32m+[m[32m      <div className="dashboard-signal-strip">[m
+[32m+[m[32m        <div><Radio /><span><b>Live orchestration</b><small>Agents are coordinating across {formatCount(openRuns.length)} open workflows</small></span></div>[m
+[32m+[m[32m        <div><ShieldCheck /><span><b>Policy guardrails active</b><small>Every pricing exception requires owner review</small></span></div>[m
+[32m+[m[32m        <div><Gauge /><span><b>{workflowRate}% workflow health</b><small>Based on current run throughput</small></span></div>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m      <div className="dashboard-workspace-grid">[m
+[32m+[m[32m        <div className="dashboard-office-wrap">{officeSection}</div>[m
+[32m+[m[32m        <aside className="dashboard-command-rail">[m
+[32m+[m[32m          <div className="dashboard-rail-heading">[m
+[32m+[m[32m            <div><p className="eyebrow">OPERATING PULSE</p><h3>Today at a glance</h3></div>[m
+[32m+[m[32m            <button className="dashboard-icon-button" aria-label="More dashboard options"><MoreHorizontal /></button>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <div className="pulse-summary"><strong>{formatCount(attentionCount)}</strong><span>items need attention</span><div className="pulse-bar"><i style={{ width: `${Math.min(100, attentionCount * 12)}%` }} /></div><small>{approvals.length > 0 ? `${formatCount(approvals.length)} approval decisions are waiting` : 'No approval decisions waiting'}</small></div>[m
+[32m+[m[32m          <div className="pulse-list">[m
+[32m+[m[32m            <div><span className="pulse-icon pulse-icon-cyan"><Users /></span><span><b>Agent team</b><small>{activeAgents} agents active · 1 manager</small></span><em>LIVE</em></div>[m
+[32m+[m[32m            <div><span className="pulse-icon pulse-icon-amber"><Workflow /></span><span><b>Open workflows</b><small>{formatCount(openRuns.length)} requests in motion</small></span><em>{formatCount(openRuns.length)}</em></div>[m
+[32m+[m[32m            <div><span className="pulse-icon pulse-icon-green"><TrendingUp /></span><span><b>Collection watch</b><small>{formatCount(pendingPayments.length)} payments awaiting confirmation</small></span><em>{formatCount(pendingPayments.length)}</em></div>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <Link href="/approvals" className="dashboard-rail-link">Open attention queue <ArrowRight /></Link>[m
+[32m+[m[32m        </aside>[m
+[32m+[m[32m      </div>[m
+       <div className="dashboard-grid">[m
+[31m-        <CommandCenter />[m
+[32m+[m[32m        <section className="dashboard-panel dashboard-panel-flow">[m
+[32m+[m[32m          <div className="dashboard-panel-header"><div><p className="eyebrow">WORKFLOW MAP</p><h3>Where work is moving</h3></div><Link href="/runs" className="dashboard-text-link">Open runs <ArrowUpRight /></Link></div>[m
+[32m+[m[32m          <CommandCenter />[m
+[32m+[m[32m        </section>[m
+         <div className="rail">[m
+           <div className="rail-card">[m
+             <div className="flex justify-between">[m
+[36m@@ -529,12 +598,12 @@[m [mexport function DashboardView() {[m
+         </div>[m
+       </div>[m
+       <div className="lower-grid">[m
+[31m-        <div className="panel">[m
+[31m-          <h3>Live activity</h3>[m
+[32m+[m[32m        <div className="panel dashboard-data-panel">[m
+[32m+[m[32m          <div className="dashboard-panel-header"><div><p className="eyebrow">EVENT STREAM</p><h3>Live activity</h3></div><span className="dashboard-mini-status"><i /> Updating now</span></div>[m
+           <LiveTimeline events={data.

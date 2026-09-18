@@ -66,7 +66,7 @@ def _postgres_env() -> dict[str, str]:
         "POSTGRES_HOST",
         "POSTGRES_PORT",
     ):
-        value = local.get(key) or result.get(key)
+        value = result.get(key) or local.get(key)
         if value is not None:
             result[key] = value
     return result
@@ -114,6 +114,7 @@ def pg_engine() -> Iterator[Engine]:
         postgres_db=env["POSTGRES_DB"],
         postgres_host=env.get("POSTGRES_HOST", "127.0.0.1"),
         postgres_port=int(env.get("POSTGRES_PORT", "5432")),
+        jwt_secret="test-only-owner-jwt-secret",  # pragma: allowlist secret
     )
     database_name = f"stockaware_p1_test_{uuid4().hex[:12]}"
     assert re.fullmatch(r"stockaware_p1_test_[0-9a-f]{12}", database_name)

@@ -16,6 +16,7 @@ router = APIRouter(tags=["catalog"], route_class=CommercialRoute)
 DbSession = Annotated[Session, Depends(get_db)]
 
 
+@router.get("/internal/products", response_model=list[ProductOut], include_in_schema=False)
 @router.get("/products", response_model=list[ProductOut])
 def list_products(
     db: DbSession,

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "channel": "office-general",
+  "messages": [
+    {
+      "id": "chat-001",
+      "agentId": "security-auditor-01",
+      "sender": "Security",
+      "role": "security-auditor",
+      "text": "Scanning the authentication middleware and checking token expiry.",
+      "timestamp": "2026-09-18T09:00:00.000Z",
+      "type": "message"
+    },
+    {
+      "id": "chat-002",
+      "agentId": "code-reviewer-01",
+      "sender": "Reviewer",
+      "role": "code-reviewer",
+      "text": "I found a race condition in the payment webhook handler. Preparing a patch for review.",
+      "timestamp": "2026-09-18T09:00:18.000Z",
+      "type": "message"
+    },
+    {
+      "id": "chat-003",
+      "agentId": "frontend-developer-01",
+      "sender": "Frontend",
+      "role": "frontend-developer",
+      "text": "Dashboard layout is responsive and the live activity stream is connected.",
+      "timestamp": "2026-09-18T09:00:42.000Z",
+      "type": "message"
+    }
+  ]
+}

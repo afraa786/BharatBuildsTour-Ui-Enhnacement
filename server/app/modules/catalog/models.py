@@ -35,6 +35,7 @@ class Product(Base):
         CheckConstraint("base_unit_price_paise > 0", name="ck_products_price_positive"),
         CheckConstraint("gst_rate_bps BETWEEN 0 AND 10000", name="ck_products_gst_rate"),
         Index("ix_products_business_normalized_name", "business_id", "normalized_name"),
+        Index("ix_products_business_category", "business_id", "category_id"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -58,6 +59,9 @@ class Product(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    category_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
     )
 
 

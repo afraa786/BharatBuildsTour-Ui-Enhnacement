@@ -12,6 +12,7 @@ MODEL_MODULES = (
     "app.modules.runs.models",
     "app.modules.whatsapp.models",
     "app.modules.identity.models",
+    "app.modules.identity.owner_models",
     "app.modules.catalog.models",
     "app.modules.inventory.models",
     "app.modules.pricing.models",

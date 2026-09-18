@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "numberOfAgents": 7,
+  "managerAgentId": "manager",
+  "displayTitle": "AGENT WORKSPACE",
+  "defaultChannel": "office-general",
+  "agents": [
+    {
+      "id": "manager",
+      "name": "Manager",
+      "role": "boss",
+      "visualId": "Me-1",
+      "spotId": "spot-1",
+      "color": "#ff4444",
+      "emoji": "👑",
+      "initialStatus": "idle",
+      "displayLabel": "Orchestrator"
+    },
+    {
+      "id": "assistant",
+      "name": "Assistant",
+      "role": "assistant",
+      "visualId": "employee-3",
+      "spotId": "spot-2",
+      "color": "#cc785c",
+      "emoji": "🤖",
+      "initialStatus": "working",
+      "displayLabel": "Assistant"
+    },
+    {
+      "id": "inventory",
+      "name": "Inventory",
+      "role": "inventory-agent",
+      "visualId": "employee-1",
+      "spotId": "spot-3",
+      "color": "#38bdf8",
+      "emoji": "📦",
+      "initialStatus": "idle",
+      "displayLabel": "Stock Desk"
+    },
+    {
+      "id": "pricing",
+      "name": "Pricing",
+      "role": "pricing-agent",
+      "visualId": "employee-2",
+      "spotId": "spot-4",
+      "color": "#f59e0b",
+      "emoji": "💰",
+      "initialStatus": "idle",
+      "displayLabel": "Margin Desk"
+    },
+    {
+      "id": "sales",
+      "name": "Sales",
+      "role": "sales-agent",
+      "visualId": "employee-3",
+      "spotId": "spot-5",
+      "color": "#34d399",
+      "emoji": "📨",
+      "initialStatus": "idle",
+      "displayLabel": "Sales Desk"
+    },
+    {
+      "id": "qa",
+      "name": "QA",
+      "role": "test-engineer",
+      "visualId": "employee-1",
+      "spotId": "spot-6",
+      "color": "#a78bfa",
+      "emoji": "🧪",
+      "initialStatus": "idle",
+      "displayLabel": "Quality Desk"
+    },
+    {
+      "id": "accounts",
+      "name": "Accounts",
+      "role": "database-architect",
+      "visualId": "employee-2",
+      "spotId": "spot-7",
+      "color": "#fb7185",
+      "emoji": "🧾",
+      "initialStatus": "idle",
+      "displayLabel": "Accounts Desk"
+    }
+  ],
+  "allowedConnections": [
+    ["manager", "assistant"],
+    ["manager", "inventory"],
+    ["manager", "pricing"],
+    ["manager", "sales"],
+    ["manager", "qa"],
+    ["manager", "accounts"],
+    ["assistant", "inventory"],
+    ["assistant", "pricing"],
+    ["sales", "inventory"],
+    ["inventory", "manager"],
+    ["pricing", "manager"],
+    ["pricing", "accounts"],
+    ["qa", "manager"]
+  ],
+  "statusLabels": {
+    "idle": "Idle",
+    "working": "Working",
+    "waiting": "Waiting",
+    "completed": "Completed",
+    "blocked": "Blocked",
+    "failed": "Failed"
+  }
+}

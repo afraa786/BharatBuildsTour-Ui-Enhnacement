@@ -69,3 +69,6 @@ class Buyer(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    type: Mapped[str] = mapped_column(String(16), nullable=False, server_default="lead")
+    source: Mapped[str | None] = mapped_column(String(64))
+    last_contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
