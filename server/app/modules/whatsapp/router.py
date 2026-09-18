@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -6,7 +9,17 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.session import get_db
+from app.modules.whatsapp.dispatch import CommerceHandlerUnavailable
+from app.modules.whatsapp.routing import RoutingError
 from app.modules.whatsapp.service import handle_webhook_payload
+
+
+def verify_meta_signature(raw_body: bytes, signature: str | None, app_secret: str) -> bool:
+    if not app_secret or not signature:
+        return False
+    expected = "sha256=" + hmac.new(app_secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
 
 router = APIRouter(prefix="/webhook/whatsapp", tags=["whatsapp"])
 
@@ -27,6 +40,35 @@ def verify_webhook(
 async def receive_webhook(
     request: Request, db: Annotated[Session, Depends(get_db)]
 ) -> dict[str, str]:
-    payload = await request.json()
-    await handle_webhook_payload(db, payload)
+    raw_body = await request.body()
+    secret = get_settings().whatsapp_app_secret.get_secret_value()
+    signature = request.headers.get("X-Hub-Signature-256", "")
+    if not verify_meta_signature(raw_body, signature, secret):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid webhook signature"
+        )
+    try:
+        payload = json.loads(raw_body)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="invalid webhook JSON",
+        ) from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="invalid webhook payload",
+        )
+    try:
+        await handle_webhook_payload(db, payload)
+    except RoutingError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="receiving number is not configured",
+        ) from exc
+    except CommerceHandlerUnavailable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="customer commerce handler is unavailable",
+        ) from exc
     return {"status": "received"}

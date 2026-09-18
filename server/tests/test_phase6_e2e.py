@@ -68,7 +68,7 @@ def journey(pg_session: Session, monkeypatch, tmp_path) -> Iterator[tuple[TestCl
             id=buyer_id,
             business_id=DEMO_BUSINESS_ID,
             display_name="Demo Buyer",
-            whatsapp_e164="+919876543210",
+            whatsapp_e164=f"+91{buyer_id.int % 10**10:010d}",
             legal_name="Demo Buyer Legal",
             billing_address="Demo Buyer Address",
         )
@@ -205,7 +205,7 @@ def test_seeded_rfq_to_signed_payment_and_demo_pdf(journey, pg_session: Session)
             quote_id=quote_id,
             quote_version=1,
             acceptance_id="buyer-acceptance-phase6",
-            buyer_whatsapp_e164="+919876543210",
+            buyer_whatsapp_e164=f"+91{buyer_id.int % 10**10:010d}",
             source_message_id="wamid-phase6",
             channel="whatsapp",
             accepted_at=datetime.now(UTC),

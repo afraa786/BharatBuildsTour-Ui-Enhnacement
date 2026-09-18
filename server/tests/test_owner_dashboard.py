@@ -105,7 +105,7 @@ def test_owner_cross_business_reads_and_writes_are_isolated(pg_session: Session)
         base_unit_price_paise=200,
         gst_rate_bps=0,
     )
-    buyer = Buyer(business_id=business_id, display_name="Second Buyer", type="lead")
+    buyer = Buyer(business_id=business_id, display_name="Second Buyer", is_customer=False)
     run = Run(
         run_id=f"SECOND-{uuid4().hex}",
         business_id=business_id,
@@ -144,7 +144,7 @@ def test_owner_cross_business_reads_and_writes_are_isolated(pg_session: Session)
             )
             assert (
                 client.patch(
-                    f"/buyers/{owner_buyer.id}", headers=second, json={"type": "customer"}
+                    f"/buyers/{owner_buyer.id}", headers=second, json={"is_customer": True}
                 ).status_code
                 == 404
             )

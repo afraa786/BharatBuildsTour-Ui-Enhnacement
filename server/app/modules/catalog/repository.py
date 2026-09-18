@@ -68,3 +68,44 @@ def exact_match_candidates(
         for product_id, product in products.items()
     ]
     return sorted(result, key=lambda item: (item[0].sku, str(item[0].id)))
+
+
+def fuzzy_match_candidates(session: Session, business_id: UUID, query: str) -> list[Product]:
+    """
+    Find active products by loosely matching on SKU, name, or alias.
+    Uses ILIKE on a wildcard-wrapped query for the demo.
+    """
+    wildcard_query = (
+        f"%{query.strip().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')}%"
+    )
+
+    direct_statement = select(Product).where(
+        Product.business_id == business_id,
+        Product.active.is_(True),
+        (Product.sku.ilike(wildcard_query, escape="\\"))
+        | (Product.name.ilike(wildcard_query, escape="\\")),
+    )
+    direct_products = list(
+        session.scalars(direct_statement.order_by(Product.sku, Product.id).limit(20)).all()
+    )
+
+    alias_statement = (
+        select(Product)
+        .join(
+            ProductAlias,
+            (ProductAlias.business_id == Product.business_id)
+            & (ProductAlias.product_id == Product.id),
+        )
+        .where(
+            Product.business_id == business_id,
+            ProductAlias.business_id == business_id,
+            Product.active.is_(True),
+            ProductAlias.alias_text.ilike(wildcard_query, escape="\\"),
+        )
+    )
+    alias_products = list(
+        session.scalars(alias_statement.order_by(Product.sku, Product.id).limit(20)).all()
+    )
+
+    products_by_id = {p.id: p for p in direct_products + alias_products}
+    return sorted(products_by_id.values(), key=lambda p: (p.sku, str(p.id)))[:20]

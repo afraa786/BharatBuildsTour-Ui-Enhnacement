@@ -6,7 +6,6 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
-    Index,
     Integer,
     String,
     UniqueConstraint,
@@ -47,11 +46,11 @@ class Buyer(Base):
     __tablename__ = "buyers"
     __table_args__ = (
         UniqueConstraint("business_id", "id", name="uq_buyers_business_id_id"),
+        UniqueConstraint("business_id", "whatsapp_e164", name="uq_buyers_business_id_whatsapp"),
         CheckConstraint(
             "display_name IS NOT NULL OR whatsapp_e164 IS NOT NULL",
             name="ck_buyers_identity_present",
         ),
-        Index("ix_buyers_business_whatsapp", "business_id", "whatsapp_e164"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -69,6 +68,6 @@ class Buyer(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    type: Mapped[str] = mapped_column(String(16), nullable=False, server_default="lead")
+    is_customer: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     source: Mapped[str | None] = mapped_column(String(64))
     last_contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

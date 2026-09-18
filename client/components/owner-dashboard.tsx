@@ -134,13 +134,13 @@ export function OwnerDashboard() {
   async function addBuyer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!buyerName.trim()) return
-    await act(() => ownerCreateBuyer({ display_name: buyerName.trim(), whatsapp_e164: buyerPhone.trim() || undefined, type: customerType }))
+    await act(() => ownerCreateBuyer({ display_name: buyerName.trim(), whatsapp_e164: buyerPhone.trim() || undefined, is_customer: customerType === 'customer' }))
     setBuyerName('')
     setBuyerPhone('')
   }
 
   const visibleProducts = products.filter(product => product.active)
-  const visibleBuyers = buyers.filter(buyer => buyer.type === customerType)
+  const visibleBuyers = buyers.filter(buyer => buyer.is_customer === (customerType === 'customer'))
   const visibleRuns = runs.filter(run => !runFilter || run.status === runFilter)
   const chartRows = reportPeriod === 'daily'
     ? sales.map(row => ({ label: date(row.date), amount: row.total_paise / 100 }))
@@ -228,9 +228,9 @@ export function OwnerDashboard() {
             </div>
           </>}
           {tab === 'customers' && <section className="owner-panel"><div className="owner-panel-heading"><h2>People & businesses</h2><span>{buyers.length} contacts</span></div>
-            <div className="owner-subtabs"><button className={customerType === 'lead' ? 'active' : ''} onClick={() => setCustomerType('lead')}>Leads ({buyers.filter(item => item.type === 'lead').length})</button><button className={customerType === 'customer' ? 'active' : ''} onClick={() => setCustomerType('customer')}>Customers ({buyers.filter(item => item.type === 'customer').length})</button></div>
+            <div className="owner-subtabs"><button className={customerType === 'lead' ? 'active' : ''} onClick={() => setCustomerType('lead')}>Leads ({buyers.filter(item => !item.is_customer).length})</button><button className={customerType === 'customer' ? 'active' : ''} onClick={() => setCustomerType('customer')}>Customers ({buyers.filter(item => item.is_customer).length})</button></div>
             <form className="owner-inline-form" onSubmit={addBuyer}><input aria-label="Contact name" required placeholder="Name or business" value={buyerName} onChange={event => setBuyerName(event.target.value)} /><input aria-label="Phone number" placeholder="Phone (optional)" value={buyerPhone} onChange={event => setBuyerPhone(event.target.value)} /><button className="owner-primary" disabled={busy}><Plus size={15} /> Add {customerType}</button></form>
-            <div className="owner-list">{visibleBuyers.map(buyer => <div className="owner-list-row" key={buyer.id}><span><strong>{buyer.display_name}</strong><small>{buyer.whatsapp_e164 || buyer.source || 'No phone recorded'}</small></span><span>{buyer.last_contacted_at ? `Contacted ${date(buyer.last_contacted_at)}` : 'No contact date'}</span>{buyer.type === 'lead' && <button className="owner-convert" disabled={busy} onClick={() => act(() => ownerEditBuyer(buyer.id, { type: 'customer' }))}>Convert to customer <ArrowRight size={14} /></button>}</div>)}</div>
+            <div className="owner-list">{visibleBuyers.map(buyer => <div className="owner-list-row" key={buyer.id}><span><strong>{buyer.display_name}</strong><small>{buyer.whatsapp_e164 || buyer.source || 'No phone recorded'}</small></span><span>{buyer.last_contacted_at ? `Contacted ${date(buyer.last_contacted_at)}` : 'No contact date'}</span>{!buyer.is_customer && <button className="owner-convert" disabled={busy} onClick={() => act(() => ownerEditBuyer(buyer.id, { is_customer: true }))}>Convert to customer <ArrowRight size={14} /></button>}</div>)}</div>
             {!visibleBuyers.length && <p className="owner-empty">No {customerType}s yet. Add one above.</p>}
           </section>}
           {tab === 'orders' && <><div className="owner-section-actions"><p>{runs.length} owner orders</p><select aria-label="Filter by status" value={runFilter} onChange={event => setRunFilter(event.target.value)}><option value="">All statuses</option>{runStatuses.map(status => <option key={status} value={status}>{plainStatus(status)}</option>)}</select></div>

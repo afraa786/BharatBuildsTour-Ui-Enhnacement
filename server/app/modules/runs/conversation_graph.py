@@ -12,6 +12,7 @@ decides or executes a business action itself.
 """
 
 from typing import TypedDict
+from uuid import UUID
 
 from langgraph.graph import END, START, StateGraph
 from sqlalchemy import select
@@ -35,7 +36,11 @@ class ConversationState(TypedDict, total=False):
 
 
 def load_conversation_history(
-    db: Session | None, wa_id: str, phone_number_id: str | None = None
+    db: Session | None,
+    wa_id: str,
+    phone_number_id: str | None = None,
+    *,
+    business_id: UUID | None = None,
 ) -> list[dict[str, str]]:
     """Last few turns of a (wa_id, phone_number_id) thread, oldest first.
 
@@ -48,6 +53,8 @@ def load_conversation_history(
     conditions = [WhatsAppMessage.wa_id == wa_id]
     if phone_number_id:
         conditions.append(WhatsAppMessage.phone_number_id == phone_number_id)
+    if business_id is not None:
+        conditions.append(WhatsAppMessage.business_id == business_id)
 
     stmt = (
         select(WhatsAppMessage)

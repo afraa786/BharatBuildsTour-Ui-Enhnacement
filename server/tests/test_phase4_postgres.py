@@ -60,7 +60,7 @@ def payment_context(pg_session: Session, monkeypatch) -> Iterator[tuple[TestClie
             id=buyer_id,
             business_id=DEMO_BUSINESS_ID,
             display_name="Payment Test Buyer",
-            whatsapp_e164="+919876543210",
+            whatsapp_e164=f"+91{buyer_id.int % 10**10:010d}",
         )
     )
     product_id = pg_session.scalar(
@@ -92,7 +92,7 @@ def payment_context(pg_session: Session, monkeypatch) -> Iterator[tuple[TestClie
             quote_id=quote.quote_id,
             quote_version=quote.quote_version,
             acceptance_id="phase4-acceptance",
-            buyer_whatsapp_e164="+919876543210",
+            buyer_whatsapp_e164=f"+91{buyer_id.int % 10**10:010d}",
             source_message_id="wamid-phase4",
             channel="whatsapp",
             accepted_at=datetime.now(UTC),
