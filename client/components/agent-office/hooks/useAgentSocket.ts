@@ -1,8 +1,8 @@
 /**
- * useAgentSocket — React hook for the embedded agent WebSocket connection.
+ * useAgentSocket — React hook for the Agent Office WebSocket connection.
  *
  * Connects to ws://localhost:3334/ws, receives real-time agent events from the
- * Agent event pipeline, and exposes events to the React tree.
+ * Claude Code hook pipeline, and exposes them to the React tree.
  *
  * Features:
  *  - Auto-reconnect with exponential back-off (capped at 30 s)
@@ -30,7 +30,7 @@ export interface AgentSocketOptions {
 export interface AgentSocketResult {
   /** Whether the WebSocket is currently open */
   connected: boolean
-  /** MCP server names discovered by the event server. */
+  /** MCP server names discovered by the server (from ~/.claude/settings.json) */
   mcpServers: string[]
   /** Last N events received (capped at 50) */
   events: OfficeEvent[]

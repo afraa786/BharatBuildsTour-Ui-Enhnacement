@@ -1,7 +1,7 @@
 /**
  * agentManager.ts
  *
- * Agent lifecycle helpers for the embedded visualizer.
+ * Agent lifecycle helpers for the Agent Office visualiser.
  *
  * Lifecycle:
  *   1. agent_spawned  → new-hire state → walk from door to assigned desk

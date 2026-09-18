@@ -22,7 +22,7 @@ export const BOSS_EMOJI = bossEmoji
 // Map agent roles to character sprite base names (in /sprites/characters/)
 export const ROLE_TO_CHAR: Record<string, string> = {
   'boss':                  bossSprite,
-  'assistant':             'employee-3',
+  'assistant':             'Claude-1',
   'debugger':              'dev-1',
   'code-reviewer':         'employee-1',
   'frontend-developer':    'Frontend-dev-1',

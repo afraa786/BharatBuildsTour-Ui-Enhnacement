@@ -430,7 +430,7 @@ export function DashboardView() {
       <div className="dashboard-office-heading">
         <div>
           <p className="eyebrow">AGENT WORKSPACE · LIVE</p>
-          <h2>Agent Workspace</h2>
+          <h2>Claude Office</h2>
           <p>Watch your digital team coordinate work in real time.</p>
         </div>
         <span className="status-pill green"><span className="size-1.5 rounded-full bg-current" />Agents online</span>

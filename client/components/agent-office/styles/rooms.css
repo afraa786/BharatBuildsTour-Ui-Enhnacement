@@ -132,8 +132,7 @@
 .room-container {
   position: relative;
   background: #1a1510;
-  overflow: visible;
-  container-type: size;
+  overflow: hidden;
   flex-shrink: 0;
 }
 

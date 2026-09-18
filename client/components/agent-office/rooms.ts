@@ -242,7 +242,7 @@ export const ROOMS: Record<RoomId, Room> = {
   'manager-office': {
     id: 'manager-office',
     name: "Manager's Office",
-    description: 'Where the manager briefs agents and reviews work.',
+    description: 'Where the manager briefs agents and reviews work. Connected to main Claude terminal.',
     background: {
       day: '/rooms/ceo-office.png',
       night: '/rooms/ceo-office.png',
