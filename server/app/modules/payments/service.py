@@ -125,6 +125,8 @@ def create_link(
             raise CommercialError(409, "INSUFFICIENT_STOCK", "Stock is insufficient for payment.")
         payment_id = uuid4()
         reference_id = str(payment_id)
+        intent_amount_paise = quote.total_paise
+        intent_expiry = quote.expires_at
         payment = Payment(
             id=payment_id,
             business_id=business_id,
@@ -132,11 +134,11 @@ def create_link(
             quote_id=quote.id,
             quote_version=quote.quote_version,
             status="CREATED",
-            amount_paise=quote.total_paise,
+            amount_paise=intent_amount_paise,
             currency="INR",
             provider_account_key=account_key,
             provider_reference_id=reference_id,
-            link_expires_at=quote.expires_at,
+            link_expires_at=intent_expiry,
         )
         session.add(payment)
         session.flush()
@@ -145,8 +147,8 @@ def create_link(
     # Intentionally outside both DB transactions. Unknown outcomes remain CREATED.
     link = adapter.create_link(
         reference_id=reference_id,
-        amount_paise=payment.amount_paise,
-        expire_by=payment.link_expires_at,
+        amount_paise=intent_amount_paise,
+        expire_by=intent_expiry,
     )
     with transaction_session() as session:
         payment = repository.lock_payment(session, business_id, payment_id)

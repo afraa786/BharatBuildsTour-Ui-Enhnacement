@@ -249,51 +249,67 @@ def generate_invoice(
             raise CommercialError(409, "IDEMPOTENCY_CONFLICT", "Key was used for another request.")
         if not claimed and key.state == "PROCESSING":
             raise CommercialError(409, "IDEMPOTENCY_IN_PROGRESS", "Invoice request is processing.")
-        payment, quote = _verified_payment(session, business_id, request)
         existing = session.scalar(
             select(Invoice).where(
-                Invoice.business_id == business_id, Invoice.payment_id == payment.id
+                Invoice.business_id == business_id, Invoice.payment_id == request.payment_id
             )
         )
         if existing is not None:
+            if (
+                existing.run_id != request.run_id
+                or existing.quote_id != request.quote_id
+                or existing.quote_version != request.quote_version
+            ):
+                raise CommercialError(
+                    409, "QUOTE_VERSION_MISMATCH", "Invoice quote binding does not match."
+                )
             invoice_id = existing.id
         else:
-            other_invoice = session.scalar(
+            payment, quote = _verified_payment(session, business_id, request)
+            existing = session.scalar(
                 select(Invoice).where(
-                    Invoice.business_id == business_id, Invoice.quote_id == quote.id
+                    Invoice.business_id == business_id, Invoice.payment_id == payment.id
                 )
             )
-            if other_invoice is not None:
-                raise CommercialError(
-                    409,
-                    "PAYMENT_RECONCILIATION_REQUIRED",
-                    "This quote version already has an invoice for another payment.",
+            if existing is not None:
+                invoice_id = existing.id
+            else:
+                other_invoice = session.scalar(
+                    select(Invoice).where(
+                        Invoice.business_id == business_id, Invoice.quote_id == quote.id
+                    )
                 )
-            business = session.scalar(select(Business).where(Business.id == business_id))
-            if business is None:
-                raise CommercialError(404, "NOT_FOUND", "Business not found.")
-            # Validate legal/demo data before consuming the next number.
-            _invoice_snapshot(session, business, quote, payment, "PENDING", datetime.now(UTC))
-            now = datetime.now(UTC)
-            number = _allocate_number(session, business, now)
-            snapshot = _invoice_snapshot(session, business, quote, payment, number, now)
-            invoice = Invoice(
-                id=uuid4(),
-                business_id=business_id,
-                run_id=quote.run_id,
-                quote_id=quote.id,
-                quote_version=quote.quote_version,
-                payment_id=payment.id,
-                invoice_number=number,
-                status="PENDING_ARTIFACT",
-                currency=quote.currency,
-                total_paise=quote.total_paise,
-                snapshot=snapshot,
-                issued_at=now,
-            )
-            session.add(invoice)
-            session.flush()
-            invoice_id = invoice.id
+                if other_invoice is not None:
+                    raise CommercialError(
+                        409,
+                        "PAYMENT_RECONCILIATION_REQUIRED",
+                        "This quote version already has an invoice for another payment.",
+                    )
+                business = session.scalar(select(Business).where(Business.id == business_id))
+                if business is None:
+                    raise CommercialError(404, "NOT_FOUND", "Business not found.")
+                # Validate legal/demo data before consuming the next number.
+                _invoice_snapshot(session, business, quote, payment, "PENDING", datetime.now(UTC))
+                now = datetime.now(UTC)
+                number = _allocate_number(session, business, now)
+                snapshot = _invoice_snapshot(session, business, quote, payment, number, now)
+                invoice = Invoice(
+                    id=uuid4(),
+                    business_id=business_id,
+                    run_id=quote.run_id,
+                    quote_id=quote.id,
+                    quote_version=quote.quote_version,
+                    payment_id=payment.id,
+                    invoice_number=number,
+                    status="PENDING_ARTIFACT",
+                    currency=quote.currency,
+                    total_paise=quote.total_paise,
+                    snapshot=snapshot,
+                    issued_at=now,
+                )
+                session.add(invoice)
+                session.flush()
+                invoice_id = invoice.id
         key.state = "COMPLETED"
         key.response_status = 200
         key.response_reference = {"invoice_id": str(invoice_id)}
