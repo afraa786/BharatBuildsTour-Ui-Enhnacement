@@ -531,22 +531,6 @@ def process_admin_message(
         ]
     if decision.intent is IntentType.IMPORTANT_UPDATES:
         return [OutboundMessage(admin_wa_id, _important_updates_text(db))]
-    if decision.intent is IntentType.SHOW_LOW_STOCK:
-        return [
-            OutboundMessage(
-                admin_wa_id,
-                "Low-stock signals are available in the control room. "
-                "Use 'show low stock' in the demo APIs or open the inventory alerts panel.",
-            )
-        ]
-    if decision.intent is IntentType.SHOW_PENDING_PAYMENTS:
-        return [
-            OutboundMessage(
-                admin_wa_id,
-                "Pending payments are tracked in Accounts Desk. "
-                "Open the payments queue or ask for the daily summary.",
-            )
-        ]
 
     return [
         OutboundMessage(

@@ -34,13 +34,18 @@ class ConversationState(TypedDict, total=False):
     reply: str
 
 
-def _load_history(state: ConversationState) -> ConversationState:
-    db = state.get("db")
-    if db is None:
-        return {"history": []}
+def load_conversation_history(
+    db: Session | None, wa_id: str, phone_number_id: str | None = None
+) -> list[dict[str, str]]:
+    """Last few turns of a (wa_id, phone_number_id) thread, oldest first.
 
-    conditions = [WhatsAppMessage.wa_id == state["wa_id"]]
-    phone_number_id = state.get("phone_number_id")
+    Each business number is a separate WhatsApp thread -- scope history to
+    the number this conversation is on, or two numbers' chats bleed together.
+    """
+    if db is None:
+        return []
+
+    conditions = [WhatsAppMessage.wa_id == wa_id]
     if phone_number_id:
         conditions.append(WhatsAppMessage.phone_number_id == phone_number_id)
 
@@ -60,7 +65,15 @@ def _load_history(state: ConversationState) -> ConversationState:
             continue
         role = "user" if row.direction == "in" else "assistant"
         history.append({"role": role, "content": text})
-    return {"history": history}
+    return history
+
+
+def _load_history(state: ConversationState) -> ConversationState:
+    return {
+        "history": load_conversation_history(
+            state.get("db"), state["wa_id"], state.get("phone_number_id")
+        )
+    }
 
 
 def _generate_reply(state: ConversationState) -> ConversationState:
