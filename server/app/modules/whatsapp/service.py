@@ -200,6 +200,8 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
             continue
         db.commit()
 
+        await client.mark_read_with_typing(message["message_id"], message["phone_number_id"])
+
         if message["type"] == "audio" and message.get("media_id"):
             creds = settings.whatsapp_number_credentials.get(message["phone_number_id"])
             if creds:
@@ -242,7 +244,9 @@ async def handle_webhook_payload(db: Session, payload: dict) -> None:
         elif decision.actor is ActorType.VENDOR:
             outbound = runs_service.process_vendor_message(db, message["wa_id"], message["text"])
         else:
-            outbound = runs_service.process_buyer_message(db, message["wa_id"], message["text"])
+            outbound = runs_service.process_buyer_message(
+                db, message["wa_id"], message["text"], phone_number_id=message["phone_number_id"]
+            )
         db.commit()
 
         for out_message in outbound:

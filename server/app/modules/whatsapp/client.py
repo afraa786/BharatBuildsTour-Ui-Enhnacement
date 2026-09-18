@@ -126,3 +126,38 @@ async def send_text_message(to: str, text: str, phone_number_id: str | None = No
         phone_number_id=phone_number_id,
         message_type="text",
     )
+
+
+async def mark_read_with_typing(message_id: str, phone_number_id: str | None = None) -> None:
+    """Marks the inbound message read and shows the WhatsApp typing bubble.
+
+    The indicator auto-dismisses after ~25s or as soon as the reply is sent,
+    whichever comes first -- call this right before doing any slow work
+    (LLM calls, transcription) so the sender sees something immediately.
+    """
+    settings = get_settings()
+    credentials = settings.whatsapp_number_credentials
+    target_phone_number_id = phone_number_id or settings.whatsapp_biz_phone_number_id
+    entry = credentials.get(target_phone_number_id)
+    if entry is None:
+        return
+    sending_phone_number_id, access_token = entry
+
+    async with httpx.AsyncClient(timeout=15.0) as http_client:
+        response = await http_client.post(
+            f"https://graph.facebook.com/{GRAPH_API_VERSION}/{sending_phone_number_id}/messages",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "messaging_product": "whatsapp",
+                "status": "read",
+                "message_id": message_id,
+                "typing_indicator": {"type": "text"},
+            },
+        )
+        if response.status_code >= 400:
+            logger.error(
+                "mark-read/typing indicator failed message_id=%s status=%s body=%s",
+                message_id,
+                response.status_code,
+                response.text,
+            )

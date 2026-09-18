@@ -20,6 +20,7 @@ from app.modules.runs.repository import (
     get_timeline,
     list_runs,
 )
+from app.modules.runs.sales_desk_graph import sales_desk_chat
 from app.modules.runs.state_machine import RunStatus, assert_valid_transition
 
 _APPROVE_RE = re.compile(r"^approve\s+(rfq-\S+)$", re.IGNORECASE)
@@ -217,7 +218,9 @@ def _buyer_help_text(intent: IntentType) -> str:
     return "Please send the item name and quantity you need, for example: 20 rolls 1.5 sq mm wire."
 
 
-def process_buyer_message(db: Session, buyer_wa_id: str, text_body: str) -> list[OutboundMessage]:
+def process_buyer_message(
+    db: Session, buyer_wa_id: str, text_body: str, phone_number_id: str | None = None
+) -> list[OutboundMessage]:
     run = get_open_run_for_buyer(db, buyer_wa_id)
     decision = route_message(
         text_body,
@@ -228,7 +231,14 @@ def process_buyer_message(db: Session, buyer_wa_id: str, text_body: str) -> list
 
     if run is None:
         if decision.intent not in {IntentType.REQUEST_ORDER, IntentType.REQUEST_QUOTE}:
-            return [OutboundMessage(buyer_wa_id, _buyer_help_text(decision.intent))]
+            reply = sales_desk_chat(
+                db,
+                buyer_wa_id,
+                text_body,
+                fallback=_buyer_help_text(decision.intent),
+                phone_number_id=phone_number_id,
+            )
+            return [OutboundMessage(buyer_wa_id, reply)]
         run = create_run(db, buyer_wa_id, buyer_name=None, raw_text=text_body)
         add_event(db, run, "Manager", "Run received from WhatsApp", {"text": text_body})
         _transition(db, run, RunStatus.NORMALIZING, "Manager", "Normalizing buyer request")
@@ -245,7 +255,14 @@ def process_buyer_message(db: Session, buyer_wa_id: str, text_body: str) -> list
                 "Answered side question while waiting for clarification",
                 {"text": text_body, "intent": decision.intent.value},
             )
-            return [OutboundMessage(buyer_wa_id, _buyer_help_text(decision.intent))]
+            reply = sales_desk_chat(
+                db,
+                buyer_wa_id,
+                text_body,
+                fallback=_buyer_help_text(decision.intent),
+                phone_number_id=phone_number_id,
+            )
+            return [OutboundMessage(buyer_wa_id, reply)]
         run.raw_text = f"{run.raw_text} {text_body}"
         _transition(db, run, RunStatus.NORMALIZING, "Manager", "Received clarification")
         return _run_pipeline(db, run, run.raw_text)
