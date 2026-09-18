@@ -6,8 +6,8 @@ x-server-environment: &server-environment
   POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
   POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
-  POSTGRES_HOST: db
-  POSTGRES_PORT: 5432
+  POSTGRES_HOST: ${POSTGRES_HOST:?Set POSTGRES_HOST in .env}
+  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
   CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:3000"]}'
   INTERNAL_BUSINESS_ID: ${INTERNAL_BUSINESS_ID:-}
   INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
@@ -17,6 +17,9 @@ x-server-environment: &server-environment
   RAZORPAY_PREVIOUS_WEBHOOK_SECRET: ${RAZORPAY_PREVIOUS_WEBHOOK_SECRET:-}
   RAZORPAY_ACCOUNT_ID: ${RAZORPAY_ACCOUNT_ID:-}
   ARTIFACT_DIR: /var/lib/stockaware/artifacts
+  INVOICE_ARTIFACT_ROOT: /var/lib/stockaware/artifacts
+  PUBLIC_ARTIFACT_BASE_URL: ${PUBLIC_ARTIFACT_BASE_URL:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   WHATSAPP_BIZ_PHONE_NUMBER_ID: ${WHATSAPP_BIZ_PHONE_NUMBER_ID:-}
   WHATSAPP_BIZ_ACCESS_TOKEN: ${WHATSAPP_BIZ_ACCESS_TOKEN:-}
   WHATSAPP_BIZ_VERIFY_TOKEN: ${WHATSAPP_BIZ_VERIFY_TOKEN:-}
@@ -24,34 +27,14 @@ x-server-environment: &server-environment
   WHATSAPP_TEST_ACCESS_TOKEN: ${WHATSAPP_TEST_ACCESS_TOKEN:-}
   WHATSAPP_TEST_VERIFY_TOKEN: ${WHATSAPP_TEST_VERIFY_TOKEN:-}
   ADMIN_WHATSAPP_NUMBERS: ${ADMIN_WHATSAPP_NUMBERS:-}
+  VENDOR_WHATSAPP_NUMBERS: ${VENDOR_WHATSAPP_NUMBERS:-}
 
 services:
-  db:
-    image: postgres:17-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
-    ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-      start_period: 10s
-
   migrate:
     build:
       context: ./server
     environment: *server-environment
     command: ["alembic", "upgrade", "head"]
-    depends_on:
-      db:
-        condition: service_healthy
     restart: "no"
 
   server:
@@ -63,8 +46,6 @@ services:
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:
-      db:
-        condition: service_healthy
       migrate:
         condition: service_completed_successfully
     healthcheck:
@@ -76,5 +57,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
   invoice_artifacts:
