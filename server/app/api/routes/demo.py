@@ -301,7 +301,9 @@ def admin_command(payload: AdminCommand) -> dict:
     if command == "show vendor updates":
         return {
             "result_type": "VENDOR_UPDATE",
-            "message": "Lumina Electricals revised LED prices effective 20 Sep. Review quotes.",
+            "message": (
+                "Lumina Electricals revised LED prices effective 20 September. Review open quotes."
+            ),
         }
     if command == "show pending payments":
         return {

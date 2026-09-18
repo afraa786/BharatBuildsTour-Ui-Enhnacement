@@ -1,0 +1,17 @@
+{
+  "status": "AMBIGUOUS",
+  "requested_text": "WIRE",
+  "selected_product_id": null,
+  "selected_sku": null,
+  "candidates": [
+    {
+      "id": "uuid-1",
+      "sku": "WIRE-1MM"
+    },
+    {
+      "id": "uuid-2",
+      "sku": "WIRE-2MM"
+    }
+  ],
+  "reason": "Multiple candidates found"
+}

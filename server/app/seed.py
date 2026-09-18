@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import transaction_session
 from app.modules.catalog.models import Product, ProductAlias, ProductSubstitute
+from app.modules.catalog.normalization import normalize_catalog_text
 from app.modules.identity.models import Business
 from app.modules.inventory.models import Inventory
 from app.modules.pricing.models import PricingRule
@@ -187,11 +188,6 @@ def _stable_id(kind: str, key: str) -> UUID:
     return uuid5(NAMESPACE_URL, f"stockaware/demo/{kind}/{key}")
 
 
-def _normalize(value: str) -> str:
-    """Stable demo lookup key; catalog matching itself belongs to Phase 2."""
-    return " ".join("".join(char if char.isalnum() else " " for char in value.casefold()).split())
-
-
 def seed_demo(session: Session) -> UUID:
     """Insert missing demo rows without overwriting stock or owner edits.
 
@@ -219,9 +215,9 @@ def seed_demo(session: Session) -> UUID:
             "id": _stable_id("product", item.sku),
             "business_id": DEMO_BUSINESS_ID,
             "sku": item.sku,
-            "normalized_sku": _normalize(item.sku),
+            "normalized_sku": normalize_catalog_text(item.sku),
             "name": item.name,
-            "normalized_name": _normalize(item.name),
+            "normalized_name": normalize_catalog_text(item.name),
             "sellable_unit": item.sellable_unit,
             "stock_unit": item.stock_unit,
             "pack_size": Decimal(item.pack_size),
@@ -246,11 +242,11 @@ def seed_demo(session: Session) -> UUID:
 
     aliases = [
         {
-            "id": _stable_id("alias", f"{item.sku}/{_normalize(alias)}"),
+            "id": _stable_id("alias", f"{item.sku}/{normalize_catalog_text(alias)}"),
             "business_id": DEMO_BUSINESS_ID,
             "product_id": products_by_sku[item.sku],
             "alias_text": alias,
-            "normalized_alias": _normalize(alias),
+            "normalized_alias": normalize_catalog_text(alias),
         }
         for item in DEMO_PRODUCTS
         for alias in item.aliases

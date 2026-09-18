@@ -1,6 +1,6 @@
 {
   "_comment": "Catalog match API fixtures (POST /catalog/match)",
-  "MATCHED_BY_SKU": {
+  "C01_EXACT_SKU_MATCH": {
     "expected_status": 200,
     "request": {
       "business_id": "b0000000-0000-4000-a000-000000000000",
@@ -24,17 +24,41 @@
       ]
     }
   },
-  "MATCHED_BY_NAME": {
+  "C02_NORMALIZED_SKU_BEHAVIOR": {
     "expected_status": 200,
     "request": {
       "business_id": "b0000000-0000-4000-a000-000000000000",
       "run_id": "RFQ-1042-ALPHA",
-      "requested_text": " Copper Wire 2.5mm ",
+      "requested_text": "  sku-001  ",
       "requested_unit": "meter"
     },
     "response": {
       "status": "MATCHED",
-      "requested_text": " Copper Wire 2.5mm ",
+      "requested_text": "  sku-001  ",
+      "selected_product_id": "prod-0000000-0001",
+      "selected_sku": "SKU-001",
+      "reason": "Exact SKU match.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-0001",
+          "sku": "SKU-001",
+          "name": "Copper Wire 2.5mm",
+          "match_type": "sku"
+        }
+      ]
+    }
+  },
+  "C03_EXACT_NORMALIZED_NAME": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "copper wire 2.5mm",
+      "requested_unit": "meter"
+    },
+    "response": {
+      "status": "MATCHED",
+      "requested_text": "copper wire 2.5mm",
       "selected_product_id": "prod-0000000-0001",
       "selected_sku": "SKU-001",
       "reason": "Exact name match.",
@@ -48,7 +72,7 @@
       ]
     }
   },
-  "MATCHED_BY_ALIAS": {
+  "C04_UNIQUE_ALIAS_MATCH": {
     "expected_status": 200,
     "request": {
       "business_id": "b0000000-0000-4000-a000-000000000000",
@@ -72,7 +96,7 @@
       ]
     }
   },
-  "AMBIGUOUS_ALIAS": {
+  "C05_AMBIGUOUS_ALIAS": {
     "expected_status": 200,
     "request": {
       "business_id": "b0000000-0000-4000-a000-000000000000",
@@ -102,7 +126,58 @@
       ]
     }
   },
-  "AMBIGUOUS_UNIT": {
+  "C07_UNKNOWN_PRODUCT": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "Nonexistent Product",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "NOT_FOUND",
+      "requested_text": "Nonexistent Product",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "No match found.",
+      "candidates": []
+    }
+  },
+  "C08_INACTIVE_PRODUCT": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "Old Switch",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "NOT_FOUND",
+      "requested_text": "Old Switch",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "No match found.",
+      "candidates": []
+    }
+  },
+  "C09_CROSS_BUSINESS_ISOLATION": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "Other Business Product",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "NOT_FOUND",
+      "requested_text": "Other Business Product",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "No match found.",
+      "candidates": []
+    }
+  },
+  "C10_UNIT_MISMATCH": {
     "expected_status": 200,
     "request": {
       "business_id": "b0000000-0000-4000-a000-000000000000",
@@ -126,51 +201,51 @@
       ]
     }
   },
-  "NOT_FOUND": {
+  "C11_ALIAS_CROSS_BUSINESS_ISOLATION": {
     "expected_status": 200,
     "request": {
-      "business_id": "b0000000-0000-4000-a000-000000000000",
-      "run_id": "RFQ-1042-ALPHA",
-      "requested_text": "Nonexistent Product",
+      "business_id": "b0000000-0000-4000-b111-000000000000",
+      "run_id": "RFQ-1042-BETA",
+      "requested_text": "9w bulb",
       "requested_unit": "piece"
     },
     "response": {
       "status": "NOT_FOUND",
-      "requested_text": "Nonexistent Product",
+      "requested_text": "9w bulb",
       "selected_product_id": null,
       "selected_sku": null,
       "reason": "No match found.",
       "candidates": []
     }
   },
-  "INACTIVE_PRODUCT": {
+  "C13_NO_FUZZY_MATCHING_FALLBACK": {
     "expected_status": 200,
     "request": {
       "business_id": "b0000000-0000-4000-a000-000000000000",
       "run_id": "RFQ-1042-ALPHA",
-      "requested_text": "Old Switch",
-      "requested_unit": "piece"
+      "requested_text": "Copr Wre 2.5",
+      "requested_unit": "meter"
     },
     "response": {
       "status": "NOT_FOUND",
-      "requested_text": "Old Switch",
+      "requested_text": "Copr Wre 2.5",
       "selected_product_id": null,
       "selected_sku": null,
       "reason": "No match found.",
       "candidates": []
     }
   },
-  "CROSS_BUSINESS_NOT_FOUND": {
+  "C14_SUBSTITUTES_NEVER_RESOLVE_CATALOG_MATCH": {
     "expected_status": 200,
     "request": {
       "business_id": "b0000000-0000-4000-a000-000000000000",
       "run_id": "RFQ-1042-ALPHA",
-      "requested_text": "Other Business Product",
+      "requested_text": "some substitute text",
       "requested_unit": "piece"
     },
     "response": {
       "status": "NOT_FOUND",
-      "requested_text": "Other Business Product",
+      "requested_text": "some substitute text",
       "selected_product_id": null,
       "selected_sku": null,
       "reason": "No match found.",

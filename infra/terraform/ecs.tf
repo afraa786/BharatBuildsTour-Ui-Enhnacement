@@ -34,14 +34,14 @@ resource "aws_iam_role_policy" "execution_ssm" {
     Statement = [{
       Effect = "Allow"
       Action = ["ssm:GetParameters"]
-      Resource = [
+      Resource = concat([
         aws_ssm_parameter.postgres_password.arn,
         aws_ssm_parameter.whatsapp_biz_access_token.arn,
         aws_ssm_parameter.whatsapp_biz_verify_token.arn,
         aws_ssm_parameter.whatsapp_test_access_token.arn,
         aws_ssm_parameter.whatsapp_test_verify_token.arn,
         aws_ssm_parameter.openai_api_key.arn,
-      ]
+      ], var.internal_service_token_ssm_arn == "" ? [] : [var.internal_service_token_ssm_arn])
     }]
   })
 }
@@ -67,6 +67,7 @@ locals {
     { name = "LOG_LEVEL", value = "INFO" },
     { name = "POSTGRES_USER", value = var.postgres_user },
     { name = "POSTGRES_DB", value = var.postgres_db },
+    { name = "INTERNAL_BUSINESS_ID", value = var.internal_business_id },
     { name = "POSTGRES_HOST", value = aws_db_instance.app.address },
     { name = "POSTGRES_PORT", value = tostring(aws_db_instance.app.port) },
     { name = "CORS_ORIGINS", value = var.cors_origins },
@@ -75,14 +76,17 @@ locals {
     { name = "ADMIN_WHATSAPP_NUMBERS", value = var.admin_whatsapp_numbers },
   ]
 
-  common_secrets = [
+  common_secrets = concat([
     { name = "POSTGRES_PASSWORD", valueFrom = aws_ssm_parameter.postgres_password.arn },
     { name = "WHATSAPP_BIZ_ACCESS_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_biz_access_token.arn },
     { name = "WHATSAPP_BIZ_VERIFY_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_biz_verify_token.arn },
     { name = "WHATSAPP_TEST_ACCESS_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_test_access_token.arn },
     { name = "WHATSAPP_TEST_VERIFY_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_test_verify_token.arn },
     { name = "OPENAI_API_KEY", valueFrom = aws_ssm_parameter.openai_api_key.arn },
-  ]
+    ], var.internal_service_token_ssm_arn == "" ? [] : [{
+      name      = "INTERNAL_SERVICE_TOKEN"
+      valueFrom = var.internal_service_token_ssm_arn
+  }])
 }
 
 resource "aws_ecs_task_definition" "server" {

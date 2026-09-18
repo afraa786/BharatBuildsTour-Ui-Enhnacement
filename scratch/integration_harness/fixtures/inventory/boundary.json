@@ -1,0 +1,176 @@
+{
+  "_comment": "Inventory boundary conditions matrix.",
+  "ON_HAND_ZERO": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "product_id": "prod-0000000-0005",
+      "requested_qty": "1.000"
+    },
+    "response": {
+      "status": "OUT_OF_STOCK",
+      "product_id": "prod-0000000-0005",
+      "requested_qty": "1.000",
+      "stock_unit": "pipe",
+      "available_qty": "0.000",
+      "checked_at": "2026-09-18T00:00:00Z",
+      "substitutes": []
+    }
+  },
+  "ON_HAND_LESS_THAN_REQUESTED": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "product_id": "prod-0000000-0003",
+      "requested_qty": "5.000"
+    },
+    "response": {
+      "status": "INSUFFICIENT_STOCK",
+      "product_id": "prod-0000000-0003",
+      "requested_qty": "5.000",
+      "stock_unit": "piece",
+      "available_qty": "2.000",
+      "checked_at": "2026-09-18T00:00:00Z",
+      "substitutes": []
+    }
+  },
+  "REMAINING_EQUALS_THRESHOLD": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "product_id": "prod-0000000-0002",
+      "requested_qty": "40.000"
+    },
+    "response": {
+      "status": "LOW_STOCK",
+      "product_id": "prod-0000000-0002",
+      "requested_qty": "40.000",
+      "stock_unit": "meter",
+      "available_qty": "50.000",
+      "checked_at": "2026-09-18T00:00:00Z",
+      "substitutes": []
+    }
+  },
+  "REMAINING_THRESHOLD_PLUS_SMALLEST_UNIT": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "product_id": "prod-0000000-0002",
+      "requested_qty": "39.999"
+    },
+    "response": {
+      "status": "AVAILABLE",
+      "product_id": "prod-0000000-0002",
+      "requested_qty": "39.999",
+      "stock_unit": "meter",
+      "available_qty": "50.000",
+      "checked_at": "2026-09-18T00:00:00Z",
+      "substitutes": []
+    }
+  },
+  "THRESHOLD_NULL": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "product_id": "prod-0000000-0013",
+      "requested_qty": "50.000"
+    },
+    "response": {
+      "status": "AVAILABLE",
+      "product_id": "prod-0000000-0013",
+      "requested_qty": "50.000",
+      "stock_unit": "piece",
+      "available_qty": "100.000",
+      "checked_at": "2026-09-18T00:00:00Z",
+      "substitutes": []
+    }
+  },
+  "FRACTIONAL_QUANTITY": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "product_id": "prod-0000000-0001",
+      "requested_qty": "1.500"
+    },
+    "response": {
+      "status": "AVAILABLE",
+      "product_id": "prod-0000000-0001",
+      "requested_qty": "1.500",
+      "stock_unit": "meter",
+      "available_qty": "1000.000",
+      "checked_at": "2026-09-18T00:00:00Z",
+      "substitutes": []
+    }
+  },
+  "ZERO_QUANTITY": {
+    "expected_status": 422,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "product_id": "prod-0000000-0001",
+      "requested_qty": "0.000"
+    },
+    "response": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Requested quantity must be greater than zero.",
+        "request_id": "req_val1"
+      }
+    }
+  },
+  "NEGATIVE_QUANTITY": {
+    "expected_status": 422,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "product_id": "prod-0000000-0001",
+      "requested_qty": "-1.000"
+    },
+    "response": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Requested quantity must be greater than zero.",
+        "request_id": "req_val2"
+      }
+    }
+  },
+  "EXCESS_DECIMAL_PRECISION": {
+    "expected_status": 422,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "product_id": "prod-0000000-0001",
+      "requested_qty": "1.1234"
+    },
+    "response": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Requested quantity exceeds maximum 3 decimal places precision.",
+        "request_id": "req_val3"
+      }
+    }
+  },
+  "MISSING_INVENTORY_ROW": {
+    "expected_status": 500,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "product_id": "prod-0000000-0014",
+      "requested_qty": "1.000"
+    },
+    "response": {
+      "_comment": "DEFERRED / REQUIRES DECISION: Do we treat missing inventory row as zero or return an error? Assuming an internal error or NOT_FOUND if it strictly requires an inventory record.",
+      "error": {
+        "code": "INTERNAL_ERROR",
+        "message": "Inventory record missing for product.",
+        "request_id": "req_val4"
+      }
+    }
+  }
+}

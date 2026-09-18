@@ -1,0 +1,10 @@
+{
+  "invoice_id": "inv_123",
+  "invoice_number": "INV-2026-000001",
+  "payment_id": "pay_123",
+  "quote_id": "6b530cb4-3510-4b83-9152-d7182b9164d5",
+  "status": "GENERATED",
+  "currency": "INR",
+  "total_paise": 28320,
+  "download_url": "https://stockaware.local/invoices/inv_123/artifact"
+}

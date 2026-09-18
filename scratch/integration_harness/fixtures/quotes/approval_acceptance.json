@@ -1,0 +1,105 @@
+{
+  "_comment": "Approval and Acceptance boundary cases.",
+  "APPROVAL": {
+    "NO_APPROVAL_REQUIRED": {
+      "quote_status": "DRAFT",
+      "approval_required": false,
+      "request_action": "MARK_GENERATED",
+      "expected_status": 200,
+      "expected_quote_status": "GENERATED"
+    },
+    "APPROVAL_REQUIRED_BUT_ABSENT": {
+      "quote_status": "DRAFT",
+      "approval_required": true,
+      "request_action": "MARK_GENERATED",
+      "expected_status": 409,
+      "error_code": "APPROVAL_REQUIRED"
+    },
+    "VALID_APPROVAL": {
+      "quote_status": "DRAFT",
+      "approval_required": true,
+      "evidence": {
+        "approval_id": "app-123",
+        "quote_id": "q-111",
+        "quote_version": 1
+      },
+      "request_action": "MARK_GENERATED",
+      "expected_status": 200,
+      "expected_quote_status": "GENERATED"
+    },
+    "STALE_VERSION_APPROVAL": {
+      "quote_status": "DRAFT",
+      "approval_required": true,
+      "evidence": {
+        "approval_id": "app-124",
+        "quote_id": "q-111",
+        "quote_version": 1
+      },
+      "current_quote_version": 2,
+      "request_action": "MARK_GENERATED",
+      "expected_status": 409,
+      "error_code": "QUOTE_VERSION_MISMATCH"
+    }
+  },
+  "ACCEPTANCE": {
+    "VALID_ACCEPTANCE": {
+      "quote_status": "GENERATED",
+      "evidence": {
+        "acceptance_id": "acc-1",
+        "quote_id": "q-111",
+        "quote_version": 2
+      },
+      "request_action": "ACCEPT",
+      "expected_status": 200,
+      "expected_quote_status": "ACCEPTED"
+    },
+    "STALE_ACCEPTANCE": {
+      "quote_status": "GENERATED",
+      "evidence": {
+        "acceptance_id": "acc-2",
+        "quote_id": "q-111",
+        "quote_version": 1
+      },
+      "current_quote_version": 2,
+      "request_action": "ACCEPT",
+      "expected_status": 409,
+      "error_code": "QUOTE_VERSION_MISMATCH"
+    },
+    "ACCEPTANCE_BEFORE_REQUIRED_APPROVAL": {
+      "quote_status": "DRAFT",
+      "approval_required": true,
+      "approval_satisfied": false,
+      "evidence": {
+        "acceptance_id": "acc-3",
+        "quote_id": "q-111",
+        "quote_version": 2
+      },
+      "request_action": "ACCEPT",
+      "expected_status": 409,
+      "error_code": "INVALID_TRANSITION",
+      "_comment_note": "A DRAFT cannot be accepted, it must be GENERATED first."
+    }
+  },
+  "EXPIRY": {
+    "ONE_SECOND_BEFORE": {
+      "quote_expires_at": "2026-09-18T10:00:00Z",
+      "request_time": "2026-09-18T09:59:59Z",
+      "request_action": "ACCEPT",
+      "expected_status": 200
+    },
+    "EXACT_EXPIRY": {
+      "quote_expires_at": "2026-09-18T10:00:00Z",
+      "request_time": "2026-09-18T10:00:00Z",
+      "request_action": "ACCEPT",
+      "expected_status": 409,
+      "error_code": "QUOTE_EXPIRED"
+    },
+    "ONE_SECOND_AFTER": {
+      "quote_expires_at": "2026-09-18T10:00:00Z",
+      "request_time": "2026-09-18T10:00:01Z",
+      "request_action": "ACCEPT",
+      "expected_status": 409,
+      "error_code": "QUOTE_EXPIRED"
+    }
+  }
+}

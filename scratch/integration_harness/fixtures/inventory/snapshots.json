@@ -1,0 +1,21 @@
+{
+  "_comment": "Inventory state before and after /inventory/check to prove READ-ONLY invariant.",
+  "STATE_BEFORE": {
+    "product_id": "prod-0000000-0001",
+    "on_hand_qty": "1000.000",
+    "version": 1,
+    "stock_movements_count": 5
+  },
+  "API_REQUEST": {
+    "business_id": "b0000000-0000-4000-a000-000000000000",
+    "run_id": "RFQ-1042-ALPHA",
+    "product_id": "prod-0000000-0001",
+    "requested_qty": "50.000"
+  },
+  "STATE_AFTER": {
+    "product_id": "prod-0000000-0001",
+    "on_hand_qty": "1000.000",
+    "version": 1,
+    "stock_movements_count": 5
+  }
+}

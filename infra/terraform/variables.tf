@@ -59,6 +59,18 @@ variable "postgres_db" {
   default = "stockaware"
 }
 
+variable "internal_business_id" {
+  description = "UUID of the single business authorized for the internal service token."
+  type        = string
+  default     = ""
+}
+
+variable "internal_service_token_ssm_arn" {
+  description = "ARN of an externally managed SecureString holding the internal service token."
+  type        = string
+  default     = ""
+}
+
 variable "whatsapp_biz_phone_number_id" {
   type      = string
   sensitive = true
