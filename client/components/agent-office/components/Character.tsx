@@ -71,8 +71,8 @@ const Character: React.FC<CharacterProps> = ({ agent, idleDurationMs = 0, zIndex
   const directionRef = useRef<SpriteDirection>(agent.spriteFacing ?? 'front-right')
   const [turnedAround, setTurnedAround] = useState(false)
 
-  const isMoving = agent.state === 'new-hire' || agent.state === 'walking-to-desk' ||
-    agent.state === 'walking-to-manager' || agent.state === 'coffee-break' || agent.state === 'completed' || agent.state === 'changing-room'
+  const isMoving = agent.state === 'new-hire' || agent.state === 'walking-to-manager' || agent.state === 'walking-to-desk' ||
+    agent.state === 'coffee-break' || agent.state === 'completed' || agent.state === 'changing-room'
 
   // Calculate movement direction when walking
   const dx = agent.position.x - prevPosRef.current.x
@@ -131,17 +131,9 @@ const Character: React.FC<CharacterProps> = ({ agent, idleDurationMs = 0, zIndex
     ? '/sprites/effects/typing.png'
     : getEffect(agent.state, idleDurationMs, agent.statusText, agent.id, agent.task, agent.role)
 
-  const bubblePlacement = agent.position.x < 18
-    ? 'bubble-edge-left'
-    : agent.position.x > 82
-      ? 'bubble-edge-right'
-      : agent.position.y < 24
-        ? 'bubble-edge-top'
-        : ''
-
   return (
     <div
-      className={`character-wrapper state-${animState} ${bubblePlacement}`}
+      className={`character-wrapper state-${animState}`}
       data-agent-status={agent.workflowStatus ?? 'idle'}
       aria-label={`${agent.name} · ${agent.workflowStatus ?? 'idle'}`}
       style={{

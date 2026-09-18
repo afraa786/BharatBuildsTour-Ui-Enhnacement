@@ -2,7 +2,6 @@
   "version": 1,
   "numberOfAgents": 7,
   "managerAgentId": "manager",
-  "displayTitle": "AGENT WORKSPACE",
   "defaultChannel": "office-general",
   "agents": [
     {
@@ -17,10 +16,10 @@
       "displayLabel": "Orchestrator"
     },
     {
-      "id": "assistant",
-      "name": "Assistant",
+      "id": "assistant-claude",
+      "name": "Claude",
       "role": "assistant",
-      "visualId": "employee-3",
+      "visualId": "Claude-1",
       "spotId": "spot-2",
       "color": "#cc785c",
       "emoji": "🤖",
@@ -84,14 +83,14 @@
     }
   ],
   "allowedConnections": [
-    ["manager", "assistant"],
+    ["manager", "assistant-claude"],
     ["manager", "inventory"],
     ["manager", "pricing"],
     ["manager", "sales"],
     ["manager", "qa"],
     ["manager", "accounts"],
-    ["assistant", "inventory"],
-    ["assistant", "pricing"],
+    ["assistant-claude", "inventory"],
+    ["assistant-claude", "pricing"],
     ["sales", "inventory"],
     ["inventory", "manager"],
     ["pricing", "manager"],

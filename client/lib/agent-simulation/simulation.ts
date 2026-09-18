@@ -20,7 +20,6 @@ export interface AgentSimulationConfig {
   version: number
   numberOfAgents: number
   managerAgentId: string
-  displayTitle?: string
   defaultChannel: string
   agents: AgentConfig[]
   allowedConnections: [string, string][]

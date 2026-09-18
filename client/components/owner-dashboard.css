@@ -10,6 +10,39 @@
   background: var(--owner-navy);
   color: #eef4ff;
 }
+
+.owner-agent-visual {
+  width: 100%;
+  height: min(682px, 70vh);
+  min-height: 500px;
+  margin-bottom: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, .14);
+  border-radius: 18px;
+}
+
+.owner-agent-visual > .app-wrapper {
+  position: relative;
+  inset: auto;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  transform: none;
+}
+
+@media (max-width: 700px) {
+  .owner-agent-visual {
+    height: 560px;
+    min-height: 0;
+  }
+}
 .owner-shell * { box-sizing: border-box; }
 .owner-sidebar { padding: 27px 16px 20px; border-right: 1px solid var(--owner-edge); display: flex; flex-direction: column; gap: 31px; background: #0c1829; }
 .owner-brand { display: flex; align-items: center; gap: 11px; color: #fff; font-size: 19px; font-weight: 760; letter-spacing: -.055em; }

@@ -16,6 +16,7 @@ import {
 } from '@/lib/api/endpoints'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import './owner-dashboard.css'
+import AgentOffice from './agent-office/App'
 
 type Tab = 'overview' | 'categories' | 'products' | 'customers' | 'orders' | 'billing' | 'reports'
 const tabs = [
@@ -174,6 +175,9 @@ export function OwnerDashboard() {
           <p>{tab === 'overview' ? 'A live picture of sales, customers and commitments.' : 'Your business data, ready for action.'}</p>
         </div><button className="owner-refresh" type="button" onClick={() => act(async () => {})} disabled={busy}><RefreshCw size={15} /> Refresh</button></div>
         {error && <div role="alert" className="owner-error-banner">{error}</div>}
+        {tab === 'overview' && <section className="owner-agent-visual" aria-label="Agent workspace visualization">
+          <AgentOffice />
+        </section>}
         {loading ? <div className="owner-loading">Loading your workspace…</div> : <>
           {tab === 'overview' && summary && <>
             <section className="owner-overview-grid">
