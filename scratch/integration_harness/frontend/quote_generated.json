@@ -1,0 +1,29 @@
+{
+  "business_id": "ff720599-56e8-53f4-9279-27ae059da37f",
+  "run_id": "RFQ-1042",
+  "quote_id": "6b530cb4-3510-4b83-9152-d7182b9164d5",
+  "quote_version": 1,
+  "status": "GENERATED",
+  "currency": "INR",
+  "subtotal_paise": 24000,
+  "tax_paise": 4320,
+  "total_paise": 28320,
+  "expires_at": "2026-09-19T10:00:00Z",
+  "approval_required": false,
+  "approval_satisfied": false,
+  "approval_reasons": [],
+  "lines": [
+    {
+      "sku": "LED-9W",
+      "quantity": "2.000",
+      "unit": "piece",
+      "unit_price_paise": 12000,
+      "discount_bps": 0,
+      "discount_paise": 0,
+      "taxable_paise": 24000,
+      "gst_rate_bps": 1800,
+      "tax_paise": 4320,
+      "line_total_paise": 28320
+    }
+  ]
+}

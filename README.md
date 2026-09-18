@@ -1,15 +1,34 @@
 # StockAware Commerce OS
 
-WhatsApp-first quote-to-cash system for wholesalers. This repository currently contains the application foundation and a Next.js starter; business workflows are the next implementation phase.
+WhatsApp-first quote-to-cash system for wholesalers. The repository now contains a PostgreSQL-backed FastAPI commercial demo through payment and demo PDF invoicing, plus Rehbar-owned workflow routes and a Next.js starter. It is not approved for live payment or legally valid tax invoices.
 
 | Path | Purpose | Owner |
 | --- | --- | --- |
 | `server/` | FastAPI, catalog, inventory, pricing, payment, invoice, PostgreSQL | Fareed |
 | `client/` | Next.js onboarding, control room, and buyer pages | Yunus |
 | `docs/` | Architecture, contracts, implementation checklist | Shared |
+| `fixtures/` | Demo catalog, RFQ workflows, and vendor-update examples | Amir |
 | `compose.yaml` | Local PostgreSQL, migration runner, FastAPI | Shared |
 
 Read [the build plan](docs/build-plan.md) before adding endpoints. It explains setup, ownership, schema decisions, API contracts, and the exact build order.
+
+## Demo and QA assets
+
+Amir's shared demo pack is ready in [fixtures/](fixtures/README.md). Use
+[manager operations](docs/manager-operations.md) for alert/reminder copy,
+[the QA checklist](docs/qa-checklist.md) for acceptance coverage, and
+[the demo script](docs/demo-script.md) for the end-to-end presentation.
+
+## Working MVP
+
+The control room in `client/` is now a responsive, interactive demo. In local,
+development, and test environments FastAPI exposes a demo workflow under `/demo`: `POST
+/demo/webhook/whatsapp`, `GET /demo/runs`, `POST /demo/runs/{run_id}/accept`,
+`POST /demo/payments/create-link`, `POST /demo/payments/{payment_id}/confirm`,
+and `POST /demo/invoice/generate`.
+The in-memory router is not registered in production. Its payment confirmation
+endpoint is strictly for local demonstrations;
+production payment state must still come from a verified Razorpay webhook.
 
 ## Quick start
 
@@ -22,9 +41,26 @@ The Compose database data persists in the `postgres_data` volume. `docker compos
 
 For local Python development and hooks, run `make install` and `make hooks`, then `make lint` and `make test`. See the build plan for migration and deployment details.
 
-## Fareed's backend work: research-agent checklist
+## Commercial backend API index
 
-Your ownership is in server/: product truth, stock truth, pricing policy, Razorpay payment, invoice issuance, and PostgreSQL. This repository currently has the FastAPI and database foundation; commercial endpoints below still need implementation. Use the detailed [build plan](docs/build-plan.md) for proposed schemas, routes, and acceptance cases.
+| Owner | Endpoint | Purpose |
+| --- | --- | --- |
+| Fareed | `GET /products` | Business-scoped product list |
+| Fareed | `POST /catalog/match` | Exact SKU/name/alias match; ambiguity is explicit |
+| Fareed | `POST /inventory/check` | Read-only stock and substitutes |
+| Fareed | `POST /pricing/quote` | Frozen quote version and exact paise totals |
+| Fareed | `POST /payments/create-link` | Accepted-quote payment intent and Razorpay link |
+| Fareed | `POST /payments/webhook` | Raw-body HMAC-verified provider event |
+| Fareed | `GET /payments/{payment_id}` | Safe payment state |
+| Fareed | `POST /invoice/generate` | Verified-payment demo invoice and PDF |
+| Fareed | `GET /invoices/{invoice_id}` and `GET /invoices/{invoice_id}/artifact` | Invoice metadata and protected artifact |
+| Rehbar | `/webhook/whatsapp`, `/runs/*`, `/admin/command` | Workflow and WhatsApp; not commercial truth |
+
+Commercial endpoints except Razorpay webhook require the configured internal service token and business context. Payment/invoice tests use fake Razorpay and explicit demo billing data; no live charge is made. See [contracts](docs/contracts.md), [Phase 2](docs/PHASE_2_README.md), [Phase 3](docs/PHASE_3_README.md), [Phase 4](docs/PHASE_4_README.md), [Phase 5](docs/PHASE_5_README.md), and [Phase 6](docs/PHASE_6_README.md). Run `make test-pg` for real PostgreSQL integration checks. Live auth, Rehbar evidence transport, provider reconciliation, and tax/legal approval remain required.
+
+## Fareed's original backend research checklist (historical)
+
+Your ownership is in server/: product truth, stock truth, pricing policy, Razorpay payment, invoice issuance, and PostgreSQL. The checklist below predates the commercial implementation and is retained as research history; use the API index and phase documents above for current status. Use the detailed [build plan](docs/build-plan.md) for proposed schemas, routes, and acceptance cases.
 
 ### 1. Freeze the team contracts
 

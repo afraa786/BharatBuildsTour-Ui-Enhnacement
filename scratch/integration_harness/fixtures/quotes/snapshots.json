@@ -1,0 +1,45 @@
+{
+  "_comment": "Quote Snapshot immutability invariants.",
+  "ORIGINAL_QUOTE": {
+    "quote_id": "q-123",
+    "status": "GENERATED",
+    "lines": [
+      {
+        "product_id": "prod-1",
+        "sku": "SKU-ABC",
+        "name": "Original Name",
+        "unit_price_paise": 1000,
+        "discount_bps": 500
+      }
+    ],
+    "subtotal_paise": 950,
+    "tax_paise": 171,
+    "total_paise": 1121
+  },
+  "LIVE_PRODUCT_MUTATION": {
+    "product_id": "prod-1",
+    "sku": "SKU-XYZ",
+    "name": "Mutated Name",
+    "unit_price_paise": 2000
+  },
+  "LIVE_PRICING_RULE_MUTATION": {
+    "discount_bps": 1000
+  },
+  "EXPECTED_HISTORICAL_QUOTE": {
+    "_comment": "Must identically match ORIGINAL_QUOTE despite LIVE mutations.",
+    "quote_id": "q-123",
+    "status": "GENERATED",
+    "lines": [
+      {
+        "product_id": "prod-1",
+        "sku": "SKU-ABC",
+        "name": "Original Name",
+        "unit_price_paise": 1000,
+        "discount_bps": 500
+      }
+    ],
+    "subtotal_paise": 950,
+    "tax_paise": 171,
+    "total_paise": 1121
+  }
+}

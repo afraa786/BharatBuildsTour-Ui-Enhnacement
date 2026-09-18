@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "QUOTE_VERSION_MISMATCH",
+    "message": "The quote version is no longer current.",
+    "details": {
+      "run_id": "RFQ-1042",
+      "current_quote_id": "6b530cb4-3510-4b83-9152-d7182b9164d5"
+    },
+    "request_id": "req_7a1"
+  }
+}

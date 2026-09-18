@@ -1,0 +1,60 @@
+{
+  "_comment": "Business isolation adversarial pack. Proves one business cannot see or leak another's IDs.",
+  "BUSINESS_A_QUERIES_BUSINESS_B_ONLY_PRODUCT": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "SKU-B001",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "NOT_FOUND",
+      "requested_text": "SKU-B001",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "No match found.",
+      "candidates": []
+    }
+  },
+  "BUSINESS_B_QUERIES_BUSINESS_A_PRODUCT": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-b111-000000000000",
+      "run_id": "RFQ-1042-BETA",
+      "requested_text": "SKU-001",
+      "requested_unit": "meter"
+    },
+    "response": {
+      "status": "NOT_FOUND",
+      "requested_text": "SKU-001",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "No match found.",
+      "candidates": []
+    }
+  },
+  "SAME_SKU_DIFFERENT_BUSINESSES": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-b111-000000000000",
+      "run_id": "RFQ-1042-BETA",
+      "requested_text": "SKU-005",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "MATCHED",
+      "requested_text": "SKU-005",
+      "selected_product_id": "prod-0000000-B005",
+      "selected_sku": "SKU-005",
+      "reason": "Exact SKU match.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-B005",
+          "sku": "SKU-005",
+          "name": "Different Product for B"
+        }
+      ]
+    }
+  }
+}

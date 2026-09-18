@@ -34,13 +34,13 @@ resource "aws_iam_role_policy" "execution_ssm" {
     Statement = [{
       Effect = "Allow"
       Action = ["ssm:GetParameters"]
-      Resource = [
+      Resource = concat([
         aws_ssm_parameter.postgres_password.arn,
         aws_ssm_parameter.whatsapp_biz_access_token.arn,
         aws_ssm_parameter.whatsapp_biz_verify_token.arn,
         aws_ssm_parameter.whatsapp_test_access_token.arn,
         aws_ssm_parameter.whatsapp_test_verify_token.arn,
-      ]
+      ], var.internal_service_token_ssm_arn == "" ? [] : [var.internal_service_token_ssm_arn])
     }]
   })
 }
@@ -66,6 +66,7 @@ locals {
     { name = "LOG_LEVEL", value = "INFO" },
     { name = "POSTGRES_USER", value = var.postgres_user },
     { name = "POSTGRES_DB", value = var.postgres_db },
+    { name = "INTERNAL_BUSINESS_ID", value = var.internal_business_id },
     { name = "POSTGRES_HOST", value = aws_db_instance.app.address },
     { name = "POSTGRES_PORT", value = tostring(aws_db_instance.app.port) },
     { name = "CORS_ORIGINS", value = var.cors_origins },
@@ -74,13 +75,16 @@ locals {
     { name = "ADMIN_WHATSAPP_NUMBERS", value = var.admin_whatsapp_numbers },
   ]
 
-  common_secrets = [
+  common_secrets = concat([
     { name = "POSTGRES_PASSWORD", valueFrom = aws_ssm_parameter.postgres_password.arn },
     { name = "WHATSAPP_BIZ_ACCESS_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_biz_access_token.arn },
     { name = "WHATSAPP_BIZ_VERIFY_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_biz_verify_token.arn },
     { name = "WHATSAPP_TEST_ACCESS_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_test_access_token.arn },
     { name = "WHATSAPP_TEST_VERIFY_TOKEN", valueFrom = aws_ssm_parameter.whatsapp_test_verify_token.arn },
-  ]
+    ], var.internal_service_token_ssm_arn == "" ? [] : [{
+      name      = "INTERNAL_SERVICE_TOKEN"
+      valueFrom = var.internal_service_token_ssm_arn
+  }])
 }
 
 resource "aws_ecs_task_definition" "server" {
@@ -90,7 +94,7 @@ resource "aws_ecs_task_definition" "server" {
   cpu                      = var.task_cpu
   memory                   = var.task_memory
   execution_role_arn       = aws_iam_role.execution.arn
-  task_role_arn             = aws_iam_role.task.arn
+  task_role_arn            = aws_iam_role.task.arn
 
   container_definitions = jsonencode([{
     name      = "server"
@@ -122,13 +126,13 @@ resource "aws_ecs_task_definition" "migrate" {
   cpu                      = var.task_cpu
   memory                   = var.task_memory
   execution_role_arn       = aws_iam_role.execution.arn
-  task_role_arn             = aws_iam_role.task.arn
+  task_role_arn            = aws_iam_role.task.arn
 
   container_definitions = jsonencode([{
-    name      = "migrate"
-    image     = local.server_image
-    essential = true
-    command   = ["alembic", "upgrade", "head"]
+    name        = "migrate"
+    image       = local.server_image
+    essential   = true
+    command     = ["alembic", "upgrade", "head"]
     environment = local.common_environment
     secrets     = local.common_secrets
     logConfiguration = {
@@ -157,8 +161,8 @@ resource "aws_ecs_service" "server" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.app.arn
-    container_name    = "server"
-    container_port    = var.container_port
+    container_name   = "server"
+    container_port   = var.container_port
   }
 
   depends_on = [aws_lb_listener.http]

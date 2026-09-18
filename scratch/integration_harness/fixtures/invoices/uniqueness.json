@@ -1,0 +1,25 @@
+{
+  "_comment": "Invoice Uniqueness matrix.",
+  "DUPLICATE_GENERATION": {
+    "SAME_REQUEST_REPEATED": {
+      "payment_id": "pay-111",
+      "expected_status_first": 200,
+      "expected_status_second": 200,
+      "expected_result": "SAME_INVOICE_ID"
+    },
+    "CONCURRENT_REQUESTS": {
+      "payment_id": "pay-222",
+      "expected_status_first": 200,
+      "expected_status_second": 409,
+      "expected_result": "SAME_INVOICE_ID_OR_CONFLICT"
+    },
+    "DIFFERENT_IDEMPOTENCY_KEY_SAME_PAYMENT": {
+      "payment_id": "pay-333",
+      "idempotency_key_1": "key1",
+      "idempotency_key_2": "key2",
+      "expected_status_first": 200,
+      "expected_status_second": 200,
+      "expected_result": "SAME_INVOICE_ID"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "_comment": "Invoice Artifact States and Snapshot Immutability.",
+  "ARTIFACT_STATES": {
+    "PENDING_ARTIFACT_LOCK": {
+      "invoice_id": "inv-111",
+      "status": "PENDING_ARTIFACT",
+      "download_url": null,
+      "expected_behavior": "Must not expose download_url until GENERATED."
+    },
+    "PDF_GENERATION_FAILURE": {
+      "invoice_id": "inv-222",
+      "status": "PENDING_ARTIFACT",
+      "event": "pdf_render_throws",
+      "expected_status": "PENDING_ARTIFACT"
+    },
+    "PDF_GENERATION_RETRY": {
+      "invoice_id": "inv-222",
+      "status": "PENDING_ARTIFACT",
+      "event": "retry_generation_success",
+      "expected_status": "GENERATED",
+      "expected_behavior": "Must reuse same invoice_number, never allocate new one."
+    }
+  },
+  "SNAPSHOT_IMMUTABILITY": {
+    "ORIGINAL_INVOICE": {
+      "invoice_id": "inv-333",
+      "status": "GENERATED",
+      "buyer_name": "Original Buyer",
+      "product_name": "Original Product"
+    },
+    "LIVE_MUTATIONS": {
+      "buyer_name": "Mutated Buyer",
+      "product_name": "Mutated Product"
+    },
+    "EXPECTED_HISTORICAL_INVOICE": {
+      "invoice_id": "inv-333",
+      "status": "GENERATED",
+      "buyer_name": "Original Buyer",
+      "product_name": "Original Product",
+      "expected_behavior": "Must identically match ORIGINAL_INVOICE despite LIVE mutations."
+    }
+  }
+}

@@ -33,8 +33,10 @@ artifacts/
 
 # Terraform
 .terraform/
-.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+tfplan*
+
+aamir-work-readme.md

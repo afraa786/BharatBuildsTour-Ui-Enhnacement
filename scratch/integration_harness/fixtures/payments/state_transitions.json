@@ -1,0 +1,54 @@
+{
+  "_comment": "Payment Link Preconditions and State Transitions matrix.",
+  "PRECONDITIONS": {
+    "ACCEPTED_AND_VALID": {
+      "quote_status": "ACCEPTED",
+      "stock_sufficient": true,
+      "expected_status": 200
+    },
+    "UNACCEPTED_QUOTE": {
+      "quote_status": "GENERATED",
+      "stock_sufficient": true,
+      "expected_status": 409,
+      "error_code": "INVALID_TRANSITION"
+    },
+    "STOCK_SHORTAGE_RECHECK": {
+      "quote_status": "ACCEPTED",
+      "stock_sufficient": false,
+      "expected_status": 409,
+      "error_code": "INSUFFICIENT_STOCK"
+    },
+    "AMOUNT_MISMATCH": {
+      "quote_status": "ACCEPTED",
+      "stock_sufficient": true,
+      "request_amount": 900,
+      "quote_amount": 1000,
+      "expected_status": 409,
+      "error_code": "PAYMENT_AMOUNT_MISMATCH"
+    }
+  },
+  "TRANSITIONS": {
+    "CREATED_TO_PENDING": {
+      "start": "CREATED",
+      "event": "LINK_ISSUED",
+      "expected": "PENDING"
+    },
+    "PENDING_TO_PAID": {
+      "start": "PENDING",
+      "event": "WEBHOOK_PAID",
+      "expected": "PAID"
+    },
+    "PAID_TO_FAILED_FORBIDDEN": {
+      "start": "PAID",
+      "event": "WEBHOOK_FAILED",
+      "expected": "PAID",
+      "_comment": "PAID never regresses."
+    },
+    "EXPIRED_TO_PAID_HOLD": {
+      "start": "EXPIRED",
+      "event": "WEBHOOK_PAID_LATE",
+      "expected": "PAID",
+      "_comment": "Sets reconciliation hold but records truth."
+    }
+  }
+}

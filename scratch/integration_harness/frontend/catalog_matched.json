@@ -1,0 +1,13 @@
+{
+  "status": "MATCHED",
+  "requested_text": "LED-9W",
+  "selected_product_id": "dcdb744a-0dc6-5e5a-b179-928ae8c6d9e7",
+  "selected_sku": "LED-9W",
+  "candidates": [
+    {
+      "id": "dcdb744a-0dc6-5e5a-b179-928ae8c6d9e7",
+      "sku": "LED-9W"
+    }
+  ],
+  "reason": "Exact match"
+}

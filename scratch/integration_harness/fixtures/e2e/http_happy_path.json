@@ -1,0 +1,24 @@
+{
+  "_comment": "Deterministic expectations for the seeded demo HTTP acceptance journey.",
+  "product": {
+    "requested_text": "9 watt led",
+    "requested_unit": "piece",
+    "selected_sku": "LED-9W"
+  },
+  "inventory": {
+    "requested_qty": "2.000",
+    "expected_status": "AVAILABLE",
+    "expected_available_qty": "30.000"
+  },
+  "quote": {
+    "quantity": "2.000",
+    "unit": "piece",
+    "discount_bps": 0,
+    "expected_status": "DRAFT",
+    "expected_version": 1,
+    "expected_subtotal_paise": 24000,
+    "expected_tax_paise": 4320,
+    "expected_total_paise": 28320,
+    "expected_approval_required": true
+  }
+}

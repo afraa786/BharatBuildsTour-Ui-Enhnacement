@@ -1,0 +1,54 @@
+{
+  "business_id": "BIZ-DEMO-001",
+  "business_name": "Aarav Electricals & Hardware",
+  "currency": "INR",
+  "cases": [
+    {
+      "id": "happy-path-rfq",
+      "run_id": "RUN-DEMO-1001",
+      "source_message_id": "wamid.demo.1001",
+      "buyer": {"id": "BUY-ACME-001", "name": "Acme Electrical Contractors", "phone": "+919811111111"},
+      "incoming_text": "Need 20 32 amp MCB and 100 metres 1.5 sq red wire. Please quote.",
+      "rfq_lines": [
+        {"requested_name": "32 amp MCB", "quantity": 20, "unit": "each", "expected_sku": "MCB-32A-SP"},
+        {"requested_name": "1.5 sq red wire", "quantity": 100, "unit": "metre", "expected_sku": "WIRE-1.5SQ-RED"}
+      ],
+      "expected": {"catalog_status": "MATCHED", "stock_status": "AVAILABLE", "quote_status": "SENT", "approval_required": false, "payment_status": "PAID", "invoice_status": "GENERATED"}
+    },
+    {
+      "id": "unknown-sku",
+      "run_id": "RUN-DEMO-1002",
+      "source_message_id": "wamid.demo.1002",
+      "buyer": {"id": "BUY-SHREE-002", "name": "Shree Buildmart", "phone": "+919822222222"},
+      "incoming_text": "Send price for 63A smart breaker, 10 pieces.",
+      "rfq_lines": [{"requested_name": "63A smart breaker", "quantity": 10, "unit": "each"}],
+      "expected": {"catalog_status": "NOT_FOUND", "run_status": "NEEDS_CLARIFICATION", "customer_action": "Ask for brand, poles, curve, and product photograph or SKU."}
+    },
+    {
+      "id": "low-stock-substitute",
+      "run_id": "RUN-DEMO-1003",
+      "source_message_id": "wamid.demo.1003",
+      "buyer": {"id": "BUY-NOVA-003", "name": "Nova Interiors", "phone": "+919833333333"},
+      "incoming_text": "Need 40 pieces of 9W LED bulbs today.",
+      "rfq_lines": [{"requested_name": "9W LED bulbs", "quantity": 40, "unit": "each", "expected_sku": "LED-9W"}],
+      "expected": {"catalog_status": "MATCHED", "stock_status": "INSUFFICIENT", "available_quantity": 20, "substitute_sku": "LED-12W", "run_status": "NEEDS_OWNER_DECISION"}
+    },
+    {
+      "id": "unsafe-pricing",
+      "run_id": "RUN-DEMO-1004",
+      "source_message_id": "wamid.demo.1004",
+      "buyer": {"id": "BUY-ACME-001", "name": "Acme Electrical Contractors", "phone": "+919811111111"},
+      "incoming_text": "Quote 50 32A MCBs at 200 rupees each.",
+      "rfq_lines": [{"requested_name": "32A MCB", "quantity": 50, "unit": "each", "expected_sku": "MCB-32A-SP", "requested_unit_price_paise": 20000}],
+      "expected": {"catalog_status": "MATCHED", "stock_status": "INSUFFICIENT", "approval_required": true, "approval_reason_codes": ["MARGIN_FLOOR_BREACH", "INSUFFICIENT_STOCK"]}
+    },
+    {
+      "id": "payment-failed",
+      "run_id": "RUN-DEMO-1005",
+      "source_message_id": "wamid.demo.1005",
+      "buyer": {"id": "BUY-URBAN-004", "name": "Urban Fixers", "phone": "+919844444444"},
+      "incoming_text": "I accept quote QT-2026-0105.",
+      "expected": {"quote_status": "ACCEPTED", "payment_status": "FAILED", "run_status": "PAYMENT_PENDING", "customer_action": "Send a fresh payment link after confirming the buyer wants to retry."}
+    }
+  ]
+}

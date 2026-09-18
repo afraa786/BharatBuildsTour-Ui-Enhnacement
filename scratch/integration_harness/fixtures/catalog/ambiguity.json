@@ -1,0 +1,110 @@
+{
+  "_comment": "Adversarial pack proving ambiguity can never silently select a product.",
+  "SAME_ALIAS_TWO_PRODUCTS": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "ambiguous switch",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "AMBIGUOUS",
+      "requested_text": "ambiguous switch",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "Multiple products match this alias.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-0007",
+          "sku": "SKU-007",
+          "name": "Switch 1-way"
+        },
+        {
+          "product_id": "prod-0000000-0008",
+          "sku": "SKU-008",
+          "name": "Switch 2-way"
+        }
+      ]
+    }
+  },
+  "SAME_NORMALIZED_CANDIDATE_COLLISION": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "wire 1.5",
+      "requested_unit": "meter"
+    },
+    "response": {
+      "status": "AMBIGUOUS",
+      "requested_text": "wire 1.5",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "Multiple products match this normalized name.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-0011",
+          "sku": "SKU-011",
+          "name": "Wire 1.5 sqmm red"
+        },
+        {
+          "product_id": "prod-0000000-0012",
+          "sku": "SKU-012",
+          "name": "Wire 1.5 sqmm blue"
+        }
+      ]
+    }
+  },
+  "CANDIDATE_ORDERING_CHANGES": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "ambiguous switch",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "AMBIGUOUS",
+      "requested_text": "ambiguous switch",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "Multiple products match this alias.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-0008",
+          "sku": "SKU-008",
+          "name": "Switch 2-way"
+        },
+        {
+          "product_id": "prod-0000000-0007",
+          "sku": "SKU-007",
+          "name": "Switch 1-way"
+        }
+      ]
+    }
+  },
+  "UNIT_MISMATCH": {
+    "expected_status": 200,
+    "request": {
+      "business_id": "b0000000-0000-4000-a000-000000000000",
+      "run_id": "RFQ-1042-ALPHA",
+      "requested_text": "SKU-001",
+      "requested_unit": "piece"
+    },
+    "response": {
+      "status": "AMBIGUOUS",
+      "requested_text": "SKU-001",
+      "selected_product_id": null,
+      "selected_sku": null,
+      "reason": "Unit 'piece' does not match product sellable unit 'meter' and no conversion exists.",
+      "candidates": [
+        {
+          "product_id": "prod-0000000-0001",
+          "sku": "SKU-001",
+          "name": "Copper Wire 2.5mm"
+        }
+      ]
+    }
+  }
+}

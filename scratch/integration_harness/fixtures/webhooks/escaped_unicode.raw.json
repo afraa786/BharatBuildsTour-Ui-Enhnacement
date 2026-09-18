@@ -1,0 +1,1 @@
+{"event":"payment.captured","payload":{"payment":{"entity":{"id":"pay_123","amount":10000,"currency":"INR","notes":{"\u0062\u0075\u0073\u0069\u006e\u0065\u0073\u0073":"test"}}}}}

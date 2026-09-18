@@ -1,0 +1,15 @@
+{
+  "_comment": "Invoice Sequence reference cases.",
+  "SEQUENCES": {
+    "BUSINESS_A_2026": [
+      "INV-2026-000001",
+      "INV-2026-000002"
+    ],
+    "BUSINESS_B_2026": [
+      "INV-2026-000001"
+    ],
+    "BUSINESS_A_2027": [
+      "INV-2027-000001"
+    ]
+  }
+}

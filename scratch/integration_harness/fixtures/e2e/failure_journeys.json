@@ -1,0 +1,31 @@
+{
+  "_comment": "Canonical failure journeys mapping to Phase 6 requirements.",
+  "FAILURE_JOURNEYS": {
+    "AMBIGUOUS_CATALOG_BLOCKS_QUOTE": {
+      "steps": [
+        {"action": "catalog.match", "result": "AMBIGUOUS"},
+        {"action": "quote.generate", "expected_status": 409, "error": "Cannot price unresolved catalog match."}
+      ]
+    },
+    "INSUFFICIENT_STOCK_BLOCKS_PAYMENT": {
+      "steps": [
+        {"action": "quote.accept", "result": "ACCEPTED"},
+        {"action": "inventory.mutate_live", "note": "Stock drops to 0 externally"},
+        {"action": "payment.create_link", "expected_status": 409, "error": "INSUFFICIENT_STOCK"}
+      ]
+    },
+    "STALE_VERSION_BLOCKS_ACCEPTANCE": {
+      "steps": [
+        {"action": "quote.generate", "result_version": 1},
+        {"action": "quote.generate", "result_version": 2},
+        {"action": "quote.accept", "input_version": 1, "expected_status": 409, "error": "QUOTE_VERSION_MISMATCH"}
+      ]
+    },
+    "EXPIRED_QUOTE_BLOCKS_ACCEPTANCE": {
+      "steps": [
+        {"action": "quote.generate", "result_expires_at": "2026-09-18T10:00:00Z"},
+        {"action": "quote.accept", "request_time": "2026-09-18T10:00:01Z", "expected_status": 409, "error": "QUOTE_EXPIRED"}
+      ]
+    }
+  }
+}
