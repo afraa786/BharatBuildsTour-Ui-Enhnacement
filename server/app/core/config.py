@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     razorpay_webhook_secret: SecretStr = SecretStr("")
     razorpay_previous_webhook_secret: SecretStr = SecretStr("")
     razorpay_account_id: str = ""
+    artifact_dir: str = "artifacts"
 
     whatsapp_biz_phone_number_id: str = ""
     whatsapp_biz_access_token: SecretStr = SecretStr("")

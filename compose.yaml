@@ -16,6 +16,7 @@ x-server-environment: &server-environment
   RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
   RAZORPAY_PREVIOUS_WEBHOOK_SECRET: ${RAZORPAY_PREVIOUS_WEBHOOK_SECRET:-}
   RAZORPAY_ACCOUNT_ID: ${RAZORPAY_ACCOUNT_ID:-}
+  ARTIFACT_DIR: /var/lib/stockaware/artifacts
   WHATSAPP_BIZ_PHONE_NUMBER_ID: ${WHATSAPP_BIZ_PHONE_NUMBER_ID:-}
   WHATSAPP_BIZ_ACCESS_TOKEN: ${WHATSAPP_BIZ_ACCESS_TOKEN:-}
   WHATSAPP_BIZ_VERIFY_TOKEN: ${WHATSAPP_BIZ_VERIFY_TOKEN:-}
@@ -57,6 +58,8 @@ services:
     build:
       context: ./server
     environment: *server-environment
+    volumes:
+      - invoice_artifacts:/var/lib/stockaware/artifacts
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:
@@ -74,3 +77,4 @@ services:
 
 volumes:
   postgres_data:
+  invoice_artifacts:

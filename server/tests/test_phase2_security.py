@@ -54,7 +54,7 @@ def test_commercial_auth_fails_closed_and_errors_are_scoped(monkeypatch: pytest.
         app.dependency_overrides.clear()
 
 
-def test_openapi_has_phase_2_through_4_commercial_routes():
+def test_openapi_has_phase_2_through_5_commercial_routes():
     with TestClient(app) as client:
         schema = client.get("/openapi.json").json()
     assert "get" in schema["paths"]["/products"]
@@ -64,3 +64,6 @@ def test_openapi_has_phase_2_through_4_commercial_routes():
     assert "post" in schema["paths"]["/payments/create-link"]
     assert "post" in schema["paths"]["/payments/webhook"]
     assert "get" in schema["paths"]["/payments/{payment_id}"]
+    assert "post" in schema["paths"]["/invoice/generate"]
+    assert "get" in schema["paths"]["/invoices/{invoice_id}"]
+    assert "get" in schema["paths"]["/invoices/{invoice_id}/artifact"]
