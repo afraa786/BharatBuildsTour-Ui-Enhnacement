@@ -96,6 +96,23 @@ function computePath(
 // Roles that go to the filing cabinet instead of their desk (browsing codebase)
 const FILING_ROLES = new Set(['Explore', 'general-purpose'])
 
+interface AgentChatFeedMessage {
+  id?: string
+  agentId?: string
+  sender?: string
+  role?: string
+  text: string
+  timestamp?: string
+  channel?: string
+  type?: 'message' | 'system'
+}
+
+interface AgentChatFeed {
+  version: number
+  channel?: string
+  messages: AgentChatFeedMessage[]
+}
+
 // The boss — always in the office, permanent desk (spot-1)
 const BOSS_ID = `boss-${BOSS_NAME.toLowerCase()}`
 const BOSS_SPOT = MAIN_ROOM.agentSpots.find(s => s.id === 'spot-1') ?? MAIN_ROOM.agentSpots.find(s => s.type === 'desk') ?? null
@@ -449,6 +466,49 @@ const App: React.FC = () => {
       isSystem,
       reactions: undefined,
     }])
+  }, [])
+
+  // Load a durable chat snapshot before live WebSocket messages arrive.
+  // Replace this public JSON with an API route when the production chat service is ready.
+  useEffect(() => {
+    let cancelled = false
+
+    fetch('/agent-office-chats.json')
+      .then(response => response.ok ? response.json() as Promise<AgentChatFeed> : null)
+      .then(feed => {
+        if (cancelled || !feed || feed.version !== 1 || !Array.isArray(feed.messages)) return
+
+        const seeded = feed.messages
+          .filter(message => typeof message.text === 'string' && message.text.trim().length > 0)
+          .slice(-50)
+          .map(message => {
+            const role = message.role ?? 'default'
+            const config = AGENT_CONFIGS[role] ?? AGENT_CONFIGS.default
+            const parsedTimestamp = message.timestamp ? new Date(message.timestamp) : null
+            const timestamp = parsedTimestamp && !Number.isNaN(parsedTimestamp.valueOf())
+              ? parsedTimestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+              : timeNow()
+
+            return {
+              id: makeMsgId(),
+              sender: message.sender ?? config.title,
+              senderSprite: role,
+              senderColor: config.color,
+              text: message.text.trim(),
+              channel: message.channel ?? feed.channel ?? 'office-general',
+              timestamp,
+              isSystem: message.type === 'system',
+              reactions: undefined,
+            }
+          })
+
+        setMessages(previous => [...seeded, ...previous].slice(-50))
+      })
+      .catch(() => {
+        // The live WebSocket remains the source of truth if the seed feed is unavailable.
+      })
+
+    return () => { cancelled = true }
   }, [])
 
   // ---------------------------------------------------------------------------

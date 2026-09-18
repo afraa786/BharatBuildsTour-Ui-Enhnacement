@@ -439,10 +439,37 @@ export function DashboardView() {
     </section>
   )
 
+  const healthLabel =
+    health.status === 'ready'
+      ? 'API · live'
+      : health.status === 'loading'
+        ? 'API · checking'
+        : 'API · unreachable'
+
+  const dashboardIntro = (
+    <section className="dashboard-intro">
+      <div>
+        <div className="dashboard-live-line"><span className="dashboard-live-dot" /> COMMAND CENTER <span>/</span> {healthLabel}</div>
+        <h2>Your operation, in motion.</h2>
+        <p>Monitor agent decisions, customer demand, and the moments that need your attention.</p>
+      </div>
+      <div className="dashboard-intro-actions">
+        <span className="dashboard-date"><Clock3 /> Monday, 17 September 2026</span>
+        <Link href="/runs" className="dashboard-text-link">View all runs <ArrowUpRight /></Link>
+      </div>
+    </section>
+  )
+
   if (resource.status !== 'ready' && resource.status !== 'empty') {
     return (
       <AdminShell>
         {header}
+        {dashboardIntro}
+        <div className="dashboard-signal-strip dashboard-signal-strip-fallback">
+          <div><Radio /><span><b>Agent workspace online</b><small>Visualization is running independently of the API</small></span></div>
+          <div><ShieldCheck /><span><b>Policy guardrails active</b><small>Owner review remains required for exceptions</small></span></div>
+          <div><Gauge /><span><b>Backend reconnecting</b><small>Live metrics return when the API is available</small></span></div>
+        </div>
         {officeSection}
         <StateBlock
           loading={resource.status === 'loading'}
@@ -455,7 +482,7 @@ export function DashboardView() {
 
   const data = resource.data
   if (!data) {
-    return <AdminShell>{header}{officeSection}</AdminShell>
+    return <AdminShell>{header}{dashboardIntro}{officeSection}</AdminShell>
   }
 
   const approvals = data.runs.filter((run) => run.status === 'APPROVAL_PENDING')
@@ -484,13 +511,6 @@ export function DashboardView() {
     })),
   ]
 
-  const healthLabel =
-    health.status === 'ready'
-      ? 'API · live'
-      : health.status === 'loading'
-        ? 'API · checking'
-        : 'API · unreachable'
-
   const activeAgents = 6
   const attentionCount = approvals.length + lowStock.length
   const workflowRate = openRuns.length > 0
@@ -500,17 +520,7 @@ export function DashboardView() {
   return (
     <AdminShell>
       {header}
-      <section className="dashboard-intro">
-        <div>
-          <div className="dashboard-live-line"><span className="dashboard-live-dot" /> COMMAND CENTER <span>/</span> {healthLabel}</div>
-          <h2>Your operation, in motion.</h2>
-          <p>Monitor agent decisions, customer demand, and the moments that need your attention.</p>
-        </div>
-        <div className="dashboard-intro-actions">
-          <span className="dashboard-date"><Clock3 /> Monday, 17 September 2026</span>
-          <Link href="/runs" className="dashboard-text-link">View all runs <ArrowUpRight /></Link>
-        </div>
-      </section>
+      {dashboardIntro}
       <div className="metrics-grid dashboard-metrics-grid">
         <Metric
           label="Pending approvals"

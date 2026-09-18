@@ -28,6 +28,7 @@
 .dashboard-metrics-grid .metric-card::after { content: ''; position: absolute; right: -22px; bottom: -34px; width: 100px; height: 100px; border: 1px solid rgba(99, 102, 241, .15); border-radius: 50%; box-shadow: 0 0 0 14px rgba(99, 102, 241, .025); }
 .dashboard-metrics-grid .metric-card strong { font-size: 34px; }
 .dashboard-signal-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-bottom: 18px; overflow: hidden; border: 1px solid rgba(148, 163, 184, .1); border-radius: 14px; background: rgba(148, 163, 184, .1); }
+.dashboard-signal-strip-fallback { margin-top: 0; }
 .dashboard-signal-strip > div { display: flex; align-items: center; gap: 11px; padding: 13px 16px; background: #0d1725; }
 .dashboard-signal-strip svg { width: 17px; height: 17px; color: #67e8f9; flex: 0 0 auto; }
 .dashboard-signal-strip > div:nth-child(2) svg { color: #fbbf24; }
