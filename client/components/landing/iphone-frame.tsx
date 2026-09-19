@@ -31,7 +31,7 @@ export function IPhoneFrame({ children, className, headerTitle, headerSubtitle, 
       {/* Header */}
       <div className={cn(
         "pt-10 pb-3 px-4 z-10 border-b shadow-sm relative",
-        isManager ? 'bg-[#F8FAFF] border-[#E9E2FF] text-[#182235]' : 'bg-[#075e54] text-white border-[#075e54]'
+        isManager ? 'bg-[#F7F4ED] border-[#C7D3C0] text-[#24302A]' : 'bg-[#075e54] text-white border-[#075e54]'
       )}>
         <div className="flex items-center justify-between">
           <div className="flex flex-col items-center w-full mt-1">
@@ -44,7 +44,7 @@ export function IPhoneFrame({ children, className, headerTitle, headerSubtitle, 
       {/* Screen Content */}
       <div className={cn(
         "flex-1 overflow-y-auto relative scroll-smooth scrollbar-hide",
-        isManager ? 'bg-[#F8FAFF]' : 'bg-[#e5ddd5]'
+        isManager ? 'bg-[#F7F4ED]' : 'bg-[#e5ddd5]'
       )}>
         {/* Chat Background Pattern Simulation */}
         {!isManager && (
@@ -60,14 +60,14 @@ export function IPhoneFrame({ children, className, headerTitle, headerSubtitle, 
       {/* Footer fake input */}
       <div className={cn(
         "h-[64px] border-t flex items-center px-3 gap-2 z-10 relative bg-[#f0f0f0] border-gray-300",
-        isManager && 'bg-white border-[#E9E2FF]'
+        isManager && 'bg-white border-[#C7D3C0]'
       )}>
         {isManager ? (
            <>
-              <div className="flex-1 flex justify-around items-center text-[#667085]">
-                <div className="flex flex-col items-center gap-1 text-[#5b5bf7]">
-                  <div className="w-5 h-5 bg-[#5b5bf7]/10 rounded-full flex items-center justify-center">
-                    <div className="w-2.5 h-2.5 bg-[#5b5bf7] rounded-full"></div>
+              <div className="flex-1 flex justify-around items-center text-[#667267]">
+                <div className="flex flex-col items-center gap-1 text-[#8FA28A]">
+                  <div className="w-5 h-5 bg-[#8FA28A]/10 rounded-full flex items-center justify-center">
+                    <div className="w-2.5 h-2.5 bg-[#8FA28A] rounded-full"></div>
                   </div>
                   <span className="text-[9px] font-medium">Home</span>
                 </div>

@@ -31,16 +31,16 @@ export function ChatBubble({ role, children, time, className, isManager }: ChatB
         <div className={cn("flex flex-col mb-3 animate-in fade-in slide-in-from-bottom-2 duration-500", className)}>
           {role === 'agent' ? (
              <div className="flex gap-2.5 items-end">
-               <div className="w-6 h-6 rounded-full bg-[#5b5bf7] flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-[#5b5bf7]/30">
+               <div className="w-6 h-6 rounded-full bg-[#8FA28A] flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-[#8FA28A]/30">
                  SA
                </div>
-               <div className="bg-white border border-[#E9E2FF] text-[#182235] px-3.5 py-2.5 rounded-2xl rounded-bl-sm text-[13px] shadow-sm max-w-[85%] leading-snug">
+               <div className="bg-white border border-[#C7D3C0] text-[#24302A] px-3.5 py-2.5 rounded-2xl rounded-bl-sm text-[13px] shadow-sm max-w-[85%] leading-snug">
                  {children}
                </div>
              </div>
           ) : (
              <div className="flex justify-end mb-1">
-               <div className="bg-[#E9E2FF] text-[#182235] px-3.5 py-2.5 rounded-2xl rounded-br-sm text-[13px] shadow-sm max-w-[85%] leading-snug">
+               <div className="bg-[#C7D3C0] text-[#24302A] px-3.5 py-2.5 rounded-2xl rounded-br-sm text-[13px] shadow-sm max-w-[85%] leading-snug">
                  {children}
                </div>
              </div>
@@ -126,18 +126,18 @@ export function PaymentCard({ total }: { total: string }) {
 
 export function ManagerCard({ icon, title, value, variant = 'default' }: { icon: string, title: string, value: React.ReactNode, variant?: 'default' | 'alert' | 'success' }) {
   return (
-    <div className="bg-white border border-[#E9E2FF] rounded-xl p-3 shadow-sm w-full flex items-start gap-3 mt-1.5">
+    <div className="bg-white border border-[#C7D3C0] rounded-xl p-3 shadow-sm w-full flex items-start gap-3 mt-1.5">
        <div className={cn(
          "w-8 h-8 rounded-full flex items-center justify-center text-[15px] shrink-0",
          variant === 'alert' ? 'bg-[#fff3f3] text-[#e02424]' : 
          variant === 'success' ? 'bg-[#f3faf7] text-[#059669]' : 
-         'bg-[#f4f7ff] text-[#5b5bf7]'
+         'bg-[#f4f7ff] text-[#8FA28A]'
        )}>
          {icon}
        </div>
        <div className="flex flex-col">
-         <span className="text-[11px] font-medium text-[#667085]">{title}</span>
-         <span className={cn("text-[13px] font-semibold mt-0.5 leading-snug", variant === 'alert' ? 'text-[#e02424]' : 'text-[#182235]')}>{value}</span>
+         <span className="text-[11px] font-medium text-[#667267]">{title}</span>
+         <span className={cn("text-[13px] font-semibold mt-0.5 leading-snug", variant === 'alert' ? 'text-[#e02424]' : 'text-[#24302A]')}>{value}</span>
        </div>
     </div>
   );
@@ -146,11 +146,11 @@ export function ManagerCard({ icon, title, value, variant = 'default' }: { icon:
 export function ActionButtons({ primary, secondary }: { primary: string, secondary?: string }) {
   return (
     <div className="flex gap-2 w-full mt-2">
-      <button className="flex-1 py-1.5 bg-[#5b5bf7] text-white text-[11px] font-semibold rounded-full shadow-sm shadow-[#5b5bf7]/20 hover:opacity-90 transition-opacity">
+      <button className="flex-1 py-1.5 bg-[#8FA28A] text-white text-[11px] font-semibold rounded-full shadow-sm shadow-[#8FA28A]/20 hover:opacity-90 transition-opacity">
         {primary}
       </button>
       {secondary && (
-        <button className="flex-1 py-1.5 bg-white border border-[#E9E2FF] text-[#182235] text-[11px] font-medium rounded-full shadow-sm hover:bg-gray-50 transition-colors">
+        <button className="flex-1 py-1.5 bg-white border border-[#C7D3C0] text-[#24302A] text-[11px] font-medium rounded-full shadow-sm hover:bg-gray-50 transition-colors">
           {secondary}
         </button>
       )}

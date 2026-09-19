@@ -1,89 +1,71 @@
-import React from 'react';
-import { MessageSquare, Globe, Box, CreditCard, BellRing } from 'lucide-react';
+﻿'use client'
+
+import { useState } from 'react'
+import { Box, CreditCard, Globe, MessageSquare, BellRing } from 'lucide-react'
 
 const features = [
-  {
-    icon: <MessageSquare className="w-5 h-5 text-[#5b5bf7]" />,
-    title: "WhatsApp Orders → Instant Quotes",
-    description: "Customers send their requirements on WhatsApp. StockAware understands the request, checks stock & pricing, and prepares the quote."
-  },
-  {
-    icon: <Globe className="w-5 h-5 text-[#059669]" />,
-    title: "Speak Your Language — 10+ Languages",
-    description: "Communicate naturally in English, Hindi, Hinglish, Marathi & 10+ languages — including voice replies. No complicated software training."
-  },
-  {
-    icon: <Box className="w-5 h-5 text-[#f59e0b]" />,
-    title: "Know Your Stock Before You Promise",
-    description: "Get instant visibility into available, low-stock & out-of-stock items, helping you avoid overpromising and missed orders."
-  },
-  {
-    icon: <CreditCard className="w-5 h-5 text-[#8b5cf6]" />,
-    title: "From Quote → Payment → Invoice",
-    description: "Turn approved quotes into payment links and invoices in one connected workflow — fewer manual steps, faster order processing."
-  },
-  {
-    icon: <BellRing className="w-5 h-5 text-[#e02424]" />,
-    title: "Never Miss a Follow-Up or Important Update",
-    description: "Get alerts for pending payments, low stock, expiring quotes, vendor price changes, shortages and customer follow-ups — all in one Manager control room."
-  }
-];
+  { icon: MessageSquare, title: 'WhatsApp Orders \u2192 Instant Quotes', description: 'Customers send their requirements on WhatsApp. StockAware understands the request, checks stock & pricing, and prepares the quote.', image: 'https://img.magnific.com/premium-psd/whatsapp-interface-smartphone-mockup_772836-1128.jpg?semt=ais_hybrid&w=740&q=80', background: 'linear-gradient(145deg, #8FA28A, #52684F)' },
+  { icon: Globe, title: 'Speak Your Language \u2014 10+ Languages', description: 'Communicate naturally in English, Hindi, Hinglish, Marathi & 10+ languages \u2014 including voice replies. No complicated software training.', image: 'https://cdn.dribbble.com/userupload/15700965/file/original-2af8a595f1480808eb7a6d7159d57c62.png?crop=0x0-3201x2401&format=webp&resize=400x300&vertical=center', background: 'linear-gradient(145deg, #C8A96B, #8F7741)' },
+  { icon: Box, title: 'Know Your Stock Before You Promise', description: 'Get instant visibility into available, low-stock & out-of-stock items, helping you avoid overpromising and missed orders.', image: 'https://d2pas86kykpvmq.cloudfront.net/uploads/glass_cards_preview_1_2a4597d7f9.png', background: 'linear-gradient(145deg, #C7D3C0, #738871)' },
+  { icon: CreditCard, title: 'From Quote \u2192 Payment \u2192 Invoice', description: 'Turn approved quotes into payment links and invoices in one connected workflow \u2014 fewer manual steps, faster order processing.', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTW9JNUXkSbAijty9ONrG4FstieqrYF_ruBCxd35eFFDQ&s', background: 'linear-gradient(145deg, #52684F, #24302A)' },
+  { icon: BellRing, title: 'Never Miss a Follow-Up or Important Update', description: 'Get alerts for pending payments, low stock, expiring quotes, vendor price changes, shortages and customer follow-ups - all in one Manager control room.', image: 'https://plus.unsplash.com/premium_photo-1683120966127-14162cdd0935?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8dGVjaG5vbG9neXxlbnwwfHwwfHx8MA%3D%3D', background: 'linear-gradient(145deg, #8F7741, #C8A96B)' },
+]
 
 export function FeaturesSection() {
+  const [activeIndex, setActiveIndex] = useState(0)
+
   return (
-    <section id="features" className="py-24 bg-white">
-      <div className="max-w-[1200px] mx-auto px-6">
-        <div className="text-center max-w-[700px] mx-auto mb-16">
-          <h2 className="text-[32px] md:text-[40px] font-bold text-[#182235] tracking-tight mb-4 leading-tight">
-            Your business runs on WhatsApp.<br/>
-            StockAware makes it work harder.
-          </h2>
+    <section id="features" className="bg-[#F7F4ED] px-6 py-24">
+      <div className="mx-auto max-w-[1200px]">
+        <div className="mb-10 flex flex-col justify-between gap-2 lg:flex-row lg:items-end">
+          <div>
+            <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8FA28A]">A calmer operating layer</p>
+            <h2 className="max-w-[620px] text-[34px] font-bold leading-tight tracking-tight text-[#24302A] md:text-[48px]">Your business runs on WhatsApp. StockAware makes it work harder.</h2>
+          </div>
+          <p className="max-w-[420px] text-[15px] leading-7 text-[#667267]">Five connected experiences that turn everyday conversations into confident business decisions.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, i) => (
-            <div 
-              key={i} 
-              className={`p-8 rounded-2xl bg-[#F8FAFF] border border-[#E9E2FF] hover:shadow-lg hover:shadow-[#5b5bf7]/5 transition-all duration-300 hover:-translate-y-1 group ${
-                i === 3 || i === 4 ? 'lg:col-span-1.5' : ''
-              }`}
-              style={
-                (i === 3 || i === 4) && typeof window !== 'undefined' && window.innerWidth >= 1024 
-                ? { gridColumn: i === 3 ? '1 / span 1' : '2 / span 2' } 
-                : {}
-              }
-            >
-              <div className="w-12 h-12 rounded-xl bg-white border border-[#E9E2FF] shadow-sm flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                {feature.icon}
-              </div>
-              <h3 className="text-[19px] font-bold text-[#182235] mb-3 leading-tight">{feature.title}</h3>
-              <p className="text-[#667085] text-[15px] leading-relaxed">
-                {feature.description}
-              </p>
-              
-              {/* Visual augmentations based on feature index */}
-              {i === 2 && (
-                <div className="mt-6 flex flex-wrap gap-2">
-                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#dff8ed] text-[#059669] text-[11px] font-bold font-mono"><span className="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>IN STOCK</span>
-                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#fff3d7] text-[#b45309] text-[11px] font-bold font-mono"><span className="w-1.5 h-1.5 rounded-full bg-[#b45309]"></span>LOW STOCK</span>
-                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#fee2e2] text-[#dc2626] text-[11px] font-bold font-mono"><span className="w-1.5 h-1.5 rounded-full bg-[#dc2626]"></span>OUT OF STOCK</span>
+        <div className="flex w-full flex-col gap-3 pb-4 md:h-[580px] md:flex-row">
+          {features.map((feature, index) => {
+            const Icon = feature.icon
+            const isActive = activeIndex === index
+            const number = String(index + 1).padStart(2, '0')
+
+            return (
+              <article
+                key={feature.title}
+                tabIndex={0}
+                aria-expanded={isActive}
+                onMouseEnter={() => setActiveIndex(index)}
+                onFocus={() => setActiveIndex(index)}
+                className={`group relative min-h-[150px] overflow-hidden rounded-[16px] transition-all duration-500 ease-in-out md:min-h-0 md:shrink-0 ${isActive ? 'md:w-[360px] max-md:h-[300px]' : 'md:w-[188px] max-md:h-[150px]'} focus:outline-none focus:ring-2 focus:ring-[#C8A96B]`}
+                style={{ background: feature.background }}
+              >
+                <img src={feature.image} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 z-10 bg-black/50" aria-hidden="true" />
+                <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/85 via-black/35 to-transparent" aria-hidden="true" />
+
+                <div className={`absolute inset-x-0 z-20 flex flex-col gap-3 px-6 transition-all duration-500 ${isActive ? 'bottom-7 opacity-100' : 'pointer-events-none bottom-5 opacity-0'}`}>
+                  <p className="font-mono text-[48px] leading-none tracking-[0.08em] text-white/50">{number}</p>
+                  <div>
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white backdrop-blur-sm"><Icon className="h-5 w-5" /></div>
+                    <h3 className="text-[22px] font-semibold leading-tight text-white">{feature.title}</h3>
+                    <p className="mt-2 text-[14px] leading-6 text-white/85">{feature.description}</p>
+                  </div>
                 </div>
-              )}
-              {i === 3 && (
-                <div className="mt-6 flex items-center gap-3 text-[12px] font-semibold text-[#667085]">
-                   <span className="bg-white px-3 py-1.5 rounded-lg border border-[#E9E2FF] shadow-sm text-[#182235]">Quote</span>
-                   <span>→</span>
-                   <span className="bg-white px-3 py-1.5 rounded-lg border border-[#E9E2FF] shadow-sm text-[#182235]">Approval</span>
-                   <span>→</span>
-                   <span className="bg-white px-3 py-1.5 rounded-lg border border-[#E9E2FF] shadow-sm text-[#182235]">Payment</span>
-                   <span>→</span>
-                   <span className="bg-white px-3 py-1.5 rounded-lg border border-[#E9E2FF] shadow-sm text-[#182235]">Invoice</span>
+
+                <div className={`absolute bottom-6 left-1/2 z-20 -translate-x-1/2 transition-all duration-500 ${isActive ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
+                  <div className="flex items-center gap-2 md:flex-col">
+                    <span className="font-mono text-[62px] leading-none tracking-[0.08em] text-white/20 md:[writing-mode:sideways-lr]">{number}</span>
+                    <span className="whitespace-nowrap text-[20px] font-semibold text-white/70 md:[writing-mode:sideways-lr]">{feature.title}</span>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+              </article>
+            )
+          })}
         </div>
       </div>
     </section>
-  );
+  )
 }
+

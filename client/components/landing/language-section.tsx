@@ -1,85 +1,72 @@
-import React from 'react';
-import { Mic } from 'lucide-react';
+'use client'
+
+import { useState } from 'react'
+import { ArrowUpRight, Globe2, MessageSquareText, Smartphone } from 'lucide-react'
+
+const whatsappMockup = 'https://img.magnific.com/premium-psd/whatsapp-interface-smartphone-mockup_772836-1128.jpg?semt=ais_hybrid&w=740&q=80'
+const languages = ['English', 'हिंदी', 'Hinglish', 'मराठी', 'தமிழ்', 'తెలుగు', 'ગુજરાતી', 'ಕನ್ನಡ']
+
+const showcaseCards = [
+  { title: 'WhatsApp-first conversations', description: 'Speak naturally. StockAware understands unstructured voice notes, text messages, and regional languages.', icon: MessageSquareText },
+  { title: 'Your language, your way', description: 'Communicate naturally in English, Hindi, Hinglish, Marathi & 10+ languages - including voice replies.', icon: Globe2 },
+  { title: 'Ready wherever work happens', description: 'No app downloads required. Keep the familiar WhatsApp experience while StockAware prepares the next action.', icon: Smartphone },
+]
 
 export function LanguageSection() {
-  const languages = ['English', 'हिंदी', 'Hinglish', 'मराठी', 'தமிழ்', 'తెలుగు', 'ગુજરાતી', 'ಕನ್ನಡ'];
+  const [activeCard, setActiveCard] = useState(0)
 
   return (
-    <section className="py-24 bg-white relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-white via-[#F8FAFF] to-white opacity-60 z-0"></div>
-      
-      <div className="max-w-[1000px] mx-auto px-6 relative z-10">
-        <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
-          
-          <div className="flex-1 md:w-1/2">
-            <h2 className="text-[32px] md:text-[40px] font-bold text-[#182235] tracking-tight mb-4 leading-tight">
-              Your customers don't have to learn your software.
-            </h2>
-            <p className="text-[20px] text-[#5b5bf7] font-semibold mb-8">
-              They can simply talk to your business.
-            </p>
-            
-            <p className="text-[#667085] text-[16px] leading-relaxed mb-8 max-w-[400px]">
-              Speak naturally. StockAware understands unstructured voice notes, text messages, and regional languages. No app downloads required.
-            </p>
+    <section className="relative overflow-hidden bg-[#F7F4ED] px-6 py-24">
+      <div className="mx-auto max-w-[1200px]">
+        <div className="mb-12 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+          <div className="max-w-[650px]">
+            <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8FA28A]">The experience stays familiar</p>
+            <h2 className="text-[36px] font-bold leading-[1.08] tracking-tight text-[#24302A] md:text-[54px]">Your customers don't have to learn your software.</h2>
+            <p className="mt-5 text-[20px] font-semibold text-[#8FA28A]">They can simply talk to your business.</p>
+          </div>
+          <p className="max-w-[410px] text-[15px] leading-7 text-[#667267]">Speak naturally. StockAware understands unstructured voice notes, text messages, and regional languages. No app downloads required.</p>
+        </div>
 
-            <div className="flex flex-wrap gap-2.5">
-              {languages.map((lang, i) => (
-                <div key={i} className="px-4 py-2 bg-white border border-[#E9E2FF] rounded-full text-[14px] font-medium text-[#182235] shadow-sm hover:border-[#5b5bf7]/40 hover:bg-[#F8FAFF] transition-colors cursor-default">
-                  {lang}
-                </div>
-              ))}
-              <div className="px-4 py-2 bg-[#F8FAFF] text-[#5b5bf7] border border-[#DFF3FF] rounded-full text-[14px] font-bold shadow-sm">
-                + more
+        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="relative min-h-[460px] overflow-hidden rounded-[20px] border border-[#C7D3C0] bg-[#24302A] p-6 shadow-[0_24px_70px_rgba(36,48,42,0.16)] md:p-8">
+            <img src={whatsappMockup} alt="WhatsApp conversation on a smartphone" className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-700 hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
+            <div className="relative z-10 flex h-full flex-col justify-between">
+              <div className="flex items-center justify-between text-white">
+                <span className="rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] backdrop-blur-sm">WhatsApp commerce</span>
+                <ArrowUpRight className="h-5 w-5" />
+              </div>
+              <div className="max-w-[430px]">
+                <p className="mb-3 font-mono text-[48px] leading-none text-white/50">01</p>
+                <h3 className="text-[28px] font-semibold leading-tight text-white">From a voice note to a quote.</h3>
+                <p className="mt-3 text-[15px] leading-6 text-white/80">StockAware understands the request, checks stock & pricing, and prepares the quote.</p>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 md:w-1/2 w-full max-w-[400px] mt-8 md:mt-0">
-            <div className="bg-[#e5ddd5] rounded-[2rem] p-6 shadow-2xl relative">
-               <div className="absolute inset-0 z-0 opacity-[0.05] pointer-events-none rounded-[2rem]" 
-                   style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }} 
-              />
-              
-              <div className="relative z-10 flex flex-col gap-4">
-                
-                {/* Voice note customer */}
-                <div className="flex justify-end">
-                   <div className="bg-[#d9fdd3] px-3 py-2 rounded-xl rounded-tr-sm shadow-sm relative min-w-[200px]">
-                     <div className="absolute top-0 -right-1.5 w-2 h-2 text-[#d9fdd3]"><svg viewBox="0 0 8 13" fill="currentColor"><path d="M8 0L0 0v13C0 6.5 3.5 1.5 8 0z"/></svg></div>
-                     
-                     <div className="flex items-center gap-3">
-                       <div className="w-8 h-8 rounded-full bg-[#128c7e] text-white flex items-center justify-center">
-                         <Mic className="w-4 h-4 fill-current" />
-                       </div>
-                       <div className="flex-1">
-                         <div className="w-full h-[3px] bg-[#128c7e]/20 rounded-full overflow-hidden flex items-center gap-[2px]">
-                           {[...Array(15)].map((_, i) => (
-                             <div key={i} className="w-[3px] bg-[#128c7e]" style={{ height: `${Math.max(2, Math.random() * 12)}px`, borderRadius: '2px' }}></div>
-                           ))}
-                         </div>
-                       </div>
-                       <span className="text-[11px] font-medium text-gray-600">0:12</span>
-                     </div>
-                   </div>
-                </div>
-
-                {/* Agent transcribes/understands */}
-                <div className="flex justify-start items-end gap-2 mt-2">
-                   <div className="w-6 h-6 rounded-full bg-[#5b5bf7] flex items-center justify-center text-white text-[10px] font-bold shrink-0">SA</div>
-                   <div className="bg-white px-3 py-2 rounded-xl rounded-tl-sm text-[13px] text-gray-900 shadow-sm relative max-w-[85%]">
-                     <div className="absolute top-0 -left-1.5 w-2 h-2 text-white"><svg viewBox="0 0 8 13" fill="currentColor"><path d="M0 0h8v13C8 6.5 4.5 1.5 0 0z"/></svg></div>
-                     <span className="text-[10px] uppercase font-bold text-[#5b5bf7] block mb-1">TRANSLATED: "I want 20 pieces of 32 amp MCB"</span>
-                     Got it! We have 8 pieces of 32A MCB in stock right now. I've prepared a quote for what's available.
-                   </div>
-                </div>
-
-              </div>
-            </div>
+          <div className="flex flex-col gap-4">
+            {showcaseCards.map((card, index) => {
+              const Icon = card.icon
+              const active = activeCard === index
+              return (
+                  <button key={card.title} type="button" onMouseEnter={() => setActiveCard(index)} onFocus={() => setActiveCard(index)} className={`group relative flex min-h-[142px] flex-1 overflow-hidden rounded-[16px] border p-6 text-left transition-all duration-500 ${active ? 'border-[#C7D3C0] bg-[#D1D5DB] text-[#24302A] shadow-lg' : 'border-[#C7D3C0] bg-white text-[#24302A] hover:border-[#8FA28A]'}`}>
+                  <img src={whatsappMockup} alt="" className={`absolute right-0 top-0 h-full w-1/2 object-cover transition-opacity duration-500 ${active ? 'opacity-25' : 'opacity-10'}`} />
+                  <div className="relative z-10 max-w-[390px]">
+                    <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl border ${active ? 'border-[#AEB6BC] bg-white/45 text-[#24302A]' : 'border-[#C7D3C0] bg-[#F7F4ED] text-[#8FA28A]'}`}><Icon className="h-5 w-5" /></div>
+                    <h3 className="text-[19px] font-semibold leading-tight">{card.title}</h3>
+                    <p className={`mt-2 text-[14px] leading-6 ${active ? 'text-[#4B5563]' : 'text-[#667267]'}`}>{card.description}</p>
+                  </div>
+                </button>
+              )
+            })}
           </div>
+        </div>
 
+        <div className="mt-8 flex flex-wrap gap-2.5">
+          {languages.map((lang) => <span key={lang} className="rounded-full border border-[#C7D3C0] bg-white px-4 py-2 text-[14px] font-medium text-[#24302A] shadow-sm">{lang}</span>)}
+          <span className="rounded-full border border-[#C7D3C0] bg-[#C7D3C0]/40 px-4 py-2 text-[14px] font-bold text-[#8FA28A]">+ more</span>
         </div>
       </div>
     </section>
-  );
+  )
 }

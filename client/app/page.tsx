@@ -11,7 +11,7 @@ import { CTAFooter } from '@/components/landing/cta-footer';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFF] text-[#182235] font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[#F7F4ED] text-[#24302A] font-sans overflow-x-hidden">
       <Navbar />
       <main>
         <Hero />

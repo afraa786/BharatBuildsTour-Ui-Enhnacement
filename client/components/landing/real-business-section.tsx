@@ -16,23 +16,23 @@ export function RealBusinessSection() {
         <div className="flex flex-col md:flex-row items-center gap-16">
           
           <div className="flex-1">
-            <h2 className="text-[32px] md:text-[40px] font-bold text-[#182235] tracking-tight mb-6 leading-tight">
+            <h2 className="text-[32px] md:text-[40px] font-bold text-[#24302A] tracking-tight mb-6 leading-tight">
               Built for the way wholesale actually works.
             </h2>
-            <p className="text-[#667085] text-[18px] mb-8 leading-relaxed">
+            <p className="text-[#667267] text-[18px] mb-8 leading-relaxed">
               Business doesn't happen in perfect spreadsheets. It happens in messy WhatsApp chats, sudden price changes, and forgotten payments.
             </p>
             
             <ul className="space-y-4 mb-8">
               {scenarios.map((text, i) => (
                 <li key={i} className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#5b5bf7]" />
-                  <span className="text-[16px] text-[#182235] font-medium">{text}</span>
+                  <CheckCircle2 className="w-5 h-5 text-[#8FA28A]" />
+                  <span className="text-[16px] text-[#24302A] font-medium">{text}</span>
                 </li>
               ))}
             </ul>
 
-            <div className="inline-block px-5 py-3 bg-[#F8FAFF] border border-[#E9E2FF] rounded-xl text-[#5b5bf7] font-bold text-[16px]">
+            <div className="inline-block px-5 py-3 bg-[#F7F4ED] border border-[#C7D3C0] rounded-xl text-[#8FA28A] font-bold text-[16px]">
               StockAware keeps the workflow moving.
             </div>
           </div>
