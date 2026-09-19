@@ -1,6 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
+import { Activity, Bot, BriefcaseBusiness, Moon, Sun, Users } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import './styles/office.css'
 import './styles/rooms.css'
 import './dashboard.css'
@@ -30,7 +35,6 @@ import {
 import { ROLE_TO_CHAR } from './config'
 import {
   agentSimulationConfig,
-  mockAgentEvents,
   getAgentConfig,
   isAllowedConnection,
   scheduleMockEvents,
@@ -372,7 +376,11 @@ const OFFICE_SIM_CHATTER = [
   { sender: 'DevOps', role: 'devops-engineer', msg: 'I declare BANKRUPTCY' },
 ]
 
-const App: React.FC = () => {
+type AgentOfficeProps = {
+  fullscreen?: boolean
+}
+
+const App: React.FC<AgentOfficeProps> = ({ fullscreen = false }) => {
   // All hooks must be at the top — before any conditional returns.
   const theme = useTheme() // Why: re-render rooms + agents when /the-office toggles
   const [agents, setAgents] = useState<Agent[]>(() => {
@@ -382,7 +390,7 @@ const App: React.FC = () => {
   const [simulationState, setSimulationState] = useState<SimulationState>(() =>
     createInitialSimulationState(agentSimulationConfig),
   )
-  const [agentEvents, setAgentEvents] = useState<AgentSimulationEvent[]>(mockAgentEvents)
+  const [agentEvents, setAgentEvents] = useState<AgentSimulationEvent[]>([])
   const agentMetaRef = useRef<Map<string, AgentMeta>>(new Map(
     agents.map(agent => [agent.id, {
       spawnedAt: Date.now(),
@@ -1073,7 +1081,10 @@ const App: React.FC = () => {
     const intervalId = setInterval(poll, 4000)
 
     const fallbackTimer = setTimeout(() => {
-      if (!cancelled && !fallbackFiredRef.current) scheduleNewAgentEvents(mockAgentEvents)
+      if (!cancelled && !fallbackFiredRef.current) {
+        fallbackFiredRef.current = true
+        addMsg('system', 'default', '#8b8d91', 'No orders yet — waiting for the first WhatsApp order.', true)
+      }
     }, 5500)
 
     return () => {
@@ -2045,9 +2056,15 @@ const App: React.FC = () => {
     )
   }
 
+  const activeAgent = agents.find(agent => agent.id === simulationState.activeAgentId)
+  const workingAgents = agents.filter(agent => agent.state === 'working').length
+  const liveRunId = simulationState.lastEvent?.run_id ?? requestedRunId ?? 'waiting'
+  const latestEventLabel = simulationState.lastEvent?.type?.replaceAll('_', ' ') ?? 'standing by'
+  const dayNightIcon = dayNightMode === 'night' ? <Moon /> : <Sun />
+
   return (
     <div
-      className="app-wrapper"
+      className={`app-wrapper${fullscreen ? ' app-wrapper-fullscreen' : ''}`}
       data-active-agent={simulationState.activeAgentId ?? ''}
       data-last-run={simulationState.lastEvent?.run_id ?? ''}
     >
@@ -2055,18 +2072,76 @@ const App: React.FC = () => {
         <div className="title-bar-dot" style={{ background: '#ff5f57' }} />
         <div className="title-bar-dot" style={{ background: '#febc2e' }} />
         <div className="title-bar-dot" style={{ background: '#28c840' }} />
-        <span className="title-bar-text">CLAUDE CODE — AGENT OFFICE</span>
-        <button
+        <span className="title-bar-text">AGENT OFFICE</span>
+        <Badge variant="success" className="title-bar-live">
+          <Activity />
+          Live ops
+        </Badge>
+        <Button
+          variant="ghost"
+          size="sm"
           className="title-bar-daynight"
           onClick={() => setDayNightMode(prev =>
             prev === 'auto' ? 'day' : prev === 'day' ? 'night' : 'auto'
           )}
           title={`Mode: ${dayNightMode}`}
         >
+          {dayNightIcon}
           {dayNightMode === 'auto' ? 'AUTO' : dayNightMode === 'day' ? 'DAY' : 'NIGHT'}
-        </button>
+        </Button>
         <span className="title-bar-phase">{getPhaseLabel(effectivePhase)}</span>
       </div>
+
+      {fullscreen && (
+        <div className="office-command-strip">
+          <div className="office-command-copy">
+            <Badge variant="outline" className="office-route-badge">
+              Manager-led team
+            </Badge>
+            <div>
+              <h1>Agent Office</h1>
+              <p>Watch the manager, specialist agents, and live backend events move through the business workflow.</p>
+            </div>
+          </div>
+
+          <div className="office-metrics">
+            <Card className="office-metric-card">
+              <CardHeader>
+                <CardDescription>Active agent</CardDescription>
+                <CardTitle>{activeAgent?.name ?? 'Manager'}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Bot />
+                <span>{activeAgent?.statusText ?? 'Coordinating the floor'}</span>
+              </CardContent>
+            </Card>
+
+            <Card className="office-metric-card">
+              <CardHeader>
+                <CardDescription>Team load</CardDescription>
+                <CardTitle>{workingAgents}/{agents.length}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Users />
+                <span>agents working right now</span>
+              </CardContent>
+            </Card>
+
+            <Card className="office-metric-card">
+              <CardHeader>
+                <CardDescription>Current run</CardDescription>
+                <CardTitle>{liveRunId}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BriefcaseBusiness />
+                <span>{latestEventLabel}</span>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Separator className="office-command-separator" />
+        </div>
+      )}
 
       <div className="app-body">
       <div className="office-view">
